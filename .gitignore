@@ -35,7 +35,10 @@ app.*.symbols
 # Obfuscation related
 app.*.map.json
 
-# Android Studio will place build artifacts here
+# Android build outputs — never commit these
+/android/app/build/
+/android/build/
+/android/.gradle/
 /android/app/debug
 /android/app/profile
 /android/app/release
