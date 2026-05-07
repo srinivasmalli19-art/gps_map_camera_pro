@@ -1,9 +1,9 @@
-// lib/screens/map_picker_screen.dart
+﻿// lib/screens/map_picker_screen.dart
 
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
-import 'package:geocoding/geocoding.dart';
 import 'package:geolocator/geolocator.dart';
+import '../utils/geocoding_helper.dart';
 import 'package:provider/provider.dart';
 import '../providers/location_provider.dart';
 import 'camera_screen.dart';
@@ -169,32 +169,11 @@ class _MapPickerScreenState extends State<MapPickerScreen>
     }
 
     // Reverse geocode
-    try {
-      final placemarks = await placemarkFromCoordinates(
-        position.latitude,
-        position.longitude,
-        localeIdentifier: 'en_IN',
-      );
-      if (placemarks.isNotEmpty) {
-        final p = placemarks.first;
-        final parts = <String>[
-          if (p.subLocality?.isNotEmpty == true) p.subLocality!,
-          if (p.locality?.isNotEmpty == true) p.locality!,
-          if (p.subAdministrativeArea?.isNotEmpty == true)
-            p.subAdministrativeArea!,
-          if (p.administrativeArea?.isNotEmpty == true) p.administrativeArea!,
-          if (p.country?.isNotEmpty == true) p.country!,
-        ];
-        setState(() {
-          _selectedAddress =
-              parts.take(4).join(', ').isNotEmpty ? parts.take(4).join(', ') : 'Unknown Location';
-        });
-      } else {
-        setState(() => _selectedAddress = 'Unknown Location');
-      }
-    } catch (_) {
-      setState(() => _selectedAddress = 'Address not available');
-    }
+    final address = await GeocodingHelper.reverseGeocode(
+      position.latitude,
+      position.longitude,
+    );
+    setState(() => _selectedAddress = address);
 
     setState(() => _isLoadingAddress = false);
 
@@ -221,7 +200,7 @@ class _MapPickerScreenState extends State<MapPickerScreen>
               borderRadius: BorderRadius.circular(18),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.12),
+                  color: Colors.black.withValues(alpha: 0.12),
                   blurRadius: 12,
                   offset: const Offset(0, 4),
                 ),
@@ -317,7 +296,7 @@ class _MapPickerScreenState extends State<MapPickerScreen>
             padding:
                 const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
             decoration: BoxDecoration(
-              color: Colors.black.withOpacity(0.65),
+              color: Colors.black.withValues(alpha: 0.65),
               borderRadius: BorderRadius.circular(30),
             ),
             child: const Row(
@@ -349,7 +328,7 @@ class _MapPickerScreenState extends State<MapPickerScreen>
           borderRadius: BorderRadius.circular(20),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.15),
+              color: Colors.black.withValues(alpha: 0.15),
               blurRadius: 20,
               offset: const Offset(0, 6),
             ),
@@ -489,7 +468,7 @@ class _MapPickerScreenState extends State<MapPickerScreen>
         Container(
           padding: const EdgeInsets.all(5),
           decoration: BoxDecoration(
-            color: color.withOpacity(0.1),
+            color: color.withValues(alpha: 0.1),
             borderRadius: BorderRadius.circular(8),
           ),
           child: Icon(icon, color: color, size: 14),
@@ -578,7 +557,7 @@ class _MapPickerScreenState extends State<MapPickerScreen>
           borderRadius: BorderRadius.circular(12),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.12),
+              color: Colors.black.withValues(alpha: 0.12),
               blurRadius: 8,
               offset: const Offset(0, 2),
             ),
@@ -601,7 +580,7 @@ class _MapPickerScreenState extends State<MapPickerScreen>
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
             decoration: BoxDecoration(
-              color: Colors.black.withOpacity(0.65),
+              color: Colors.black.withValues(alpha: 0.65),
               borderRadius: BorderRadius.circular(20),
             ),
             child: const Row(
@@ -658,9 +637,9 @@ class _MapPickerScreenState extends State<MapPickerScreen>
             Container(
               padding: const EdgeInsets.all(14),
               decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.05),
+                color: Colors.white.withValues(alpha: 0.05),
                 borderRadius: BorderRadius.circular(14),
-                border: Border.all(color: Colors.white.withOpacity(0.1)),
+                border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -684,10 +663,10 @@ class _MapPickerScreenState extends State<MapPickerScreen>
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: Colors.purple.withOpacity(0.15),
+                color: Colors.purple.withValues(alpha: 0.15),
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(
-                    color: Colors.purple.withOpacity(0.3)),
+                    color: Colors.purple.withValues(alpha: 0.3)),
               ),
               child: Row(
                 children: [

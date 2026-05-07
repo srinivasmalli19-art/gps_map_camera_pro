@@ -1,4 +1,4 @@
-package com.example.gps_map_camera_pro
+package com.srinivasmalli.gpsmapscamerapro
 
 import io.flutter.embedding.android.FlutterActivity
 

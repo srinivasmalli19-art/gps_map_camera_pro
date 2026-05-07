@@ -7,7 +7,7 @@ class AppConstants {
   //    Enable: Maps SDK for Android, Geocoding API,
   //            and optionally Static Maps API in Google Cloud Console
   // ──────────────────────────────────────────────────────────
-  static const String googleMapsApiKey = 'YOUR_GOOGLE_MAPS_API_KEY';
+  static const String googleMapsApiKey = 'AIzaSyBbT_Y4iCJrQYDiDpiLZU-PPuS6s0ZFKq0';
 
   // App metadata
   static const String appName = 'GPS Map Camera Pro';

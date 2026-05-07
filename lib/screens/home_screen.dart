@@ -5,8 +5,8 @@ import 'package:provider/provider.dart';
 import '../providers/location_provider.dart';
 import 'map_picker_screen.dart';
 import 'camera_screen.dart';
+import 'gallery_screen.dart';
 
-/// Home Screen — lets the user choose between Live GPS and Custom Location modes
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
 
@@ -26,7 +26,7 @@ class HomeScreen extends StatelessWidget {
             children: [
               _buildHeader(context),
               Expanded(child: _buildModeCards(context)),
-              _buildFooter(),
+              _buildFooter(context),
             ],
           ),
         ),
@@ -41,7 +41,6 @@ class HomeScreen extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(24, 20, 24, 12),
       child: Column(
         children: [
-          // App logo row
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
@@ -54,7 +53,7 @@ class HomeScreen extends StatelessWidget {
                   borderRadius: BorderRadius.circular(16),
                   boxShadow: [
                     BoxShadow(
-                      color: const Color(0xFF4FC3F7).withOpacity(0.4),
+                      color: const Color(0xFF4FC3F7).withValues(alpha: 0.4),
                       blurRadius: 16,
                       offset: const Offset(0, 4),
                     ),
@@ -77,8 +76,8 @@ class HomeScreen extends StatelessWidget {
                     ),
                   ),
                   Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 8, vertical: 2),
                     decoration: BoxDecoration(
                       gradient: const LinearGradient(
                         colors: [Color(0xFF4FC3F7), Color(0xFF29B6F6)],
@@ -103,7 +102,7 @@ class HomeScreen extends StatelessWidget {
           Text(
             'Capture photos with precise GPS coordinates',
             style: TextStyle(
-              color: Colors.white.withOpacity(0.55),
+              color: Colors.white.withValues(alpha: 0.55),
               fontSize: 13,
               letterSpacing: 0.3,
             ),
@@ -121,7 +120,6 @@ class HomeScreen extends StatelessWidget {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          // ── Live GPS Mode Card ──
           _ModeCard(
             icon: Icons.gps_fixed_rounded,
             title: 'Live GPS Mode',
@@ -141,8 +139,6 @@ class HomeScreen extends StatelessWidget {
             onTap: () => _handleLiveMode(context),
           ),
           const SizedBox(height: 18),
-
-          // ── Custom Location Mode Card ──
           _ModeCard(
             icon: Icons.map_rounded,
             title: 'Custom Location Mode',
@@ -171,7 +167,6 @@ class HomeScreen extends StatelessWidget {
   Future<void> _handleLiveMode(BuildContext context) async {
     final provider = context.read<LocationProvider>();
 
-    // Show loading dialog
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -182,20 +177,16 @@ class HomeScreen extends StatelessWidget {
           decoration: BoxDecoration(
             color: const Color(0xFF1E2A3A),
             borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: Colors.white.withOpacity(0.1)),
+            border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
           ),
           child: const Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               CircularProgressIndicator(
-                color: Color(0xFF4FC3F7),
-                strokeWidth: 3,
-              ),
+                  color: Color(0xFF4FC3F7), strokeWidth: 3),
               SizedBox(height: 20),
-              Text(
-                'Getting GPS Location...',
-                style: TextStyle(color: Colors.white, fontSize: 15),
-              ),
+              Text('Getting GPS Location…',
+                  style: TextStyle(color: Colors.white, fontSize: 15)),
               SizedBox(height: 6),
               Text(
                 'Please wait. This may take a few seconds.',
@@ -209,28 +200,20 @@ class HomeScreen extends StatelessWidget {
     );
 
     final success = await provider.fetchLiveLocation();
-
     if (!context.mounted) return;
-    Navigator.of(context).pop(); // Close loading dialog
+    Navigator.of(context).pop();
 
     if (!success) {
       _showErrorDialog(context, provider.error ?? 'Unknown error occurred.');
       return;
     }
 
-    // Navigate to camera
-    Navigator.push(
-      context,
-      _buildPageRoute(const CameraScreen()),
-    );
+    Navigator.push(context, _buildPageRoute(const CameraScreen()));
   }
 
   void _handleCustomMode(BuildContext context) {
     context.read<LocationProvider>().reset();
-    Navigator.push(
-      context,
-      _buildPageRoute(const MapPickerScreen()),
-    );
+    Navigator.push(context, _buildPageRoute(const MapPickerScreen()));
   }
 
   void _showErrorDialog(BuildContext context, String message) {
@@ -238,12 +221,14 @@ class HomeScreen extends StatelessWidget {
       context: context,
       builder: (_) => AlertDialog(
         backgroundColor: const Color(0xFF1E2A3A),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        shape:
+            RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: const Row(
           children: [
             Icon(Icons.error_outline_rounded, color: Colors.redAccent),
             SizedBox(width: 10),
-            Text('Location Error', style: TextStyle(color: Colors.white)),
+            Text('Location Error',
+                style: TextStyle(color: Colors.white)),
           ],
         ),
         content: Text(message,
@@ -256,7 +241,8 @@ class HomeScreen extends StatelessWidget {
                   borderRadius: BorderRadius.circular(10)),
             ),
             onPressed: () => Navigator.pop(context),
-            child: const Text('OK', style: TextStyle(color: Colors.white)),
+            child: const Text('OK',
+                style: TextStyle(color: Colors.white)),
           ),
         ],
       ),
@@ -271,7 +257,8 @@ class HomeScreen extends StatelessWidget {
         child: SlideTransition(
           position:
               Tween(begin: const Offset(0.05, 0), end: Offset.zero).animate(
-            CurvedAnimation(parent: animation, curve: Curves.easeOutCubic),
+            CurvedAnimation(
+                parent: animation, curve: Curves.easeOutCubic),
           ),
           child: child,
         ),
@@ -282,23 +269,65 @@ class HomeScreen extends StatelessWidget {
 
   // ── Footer ───────────────────────────────────────────────
 
-  Widget _buildFooter() {
+  Widget _buildFooter(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 8, 20, 16),
+      padding: const EdgeInsets.fromLTRB(20, 4, 20, 16),
       child: Column(
         children: [
-          Divider(color: Colors.white.withOpacity(0.1)),
+          // ── My Photos button ──
+          GestureDetector(
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const GalleryScreen()),
+            ),
+            child: Container(
+              width: double.infinity,
+              padding:
+                  const EdgeInsets.symmetric(vertical: 13, horizontal: 20),
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.07),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(
+                    color: Colors.white.withValues(alpha: 0.12), width: 1),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.photo_library_rounded,
+                      color: const Color(0xFF4FC3F7).withValues(alpha: 0.9),
+                      size: 20),
+                  const SizedBox(width: 10),
+                  const Text(
+                    'My Photos',
+                    style: TextStyle(
+                      color: Color(0xFF4FC3F7),
+                      fontSize: 14,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 0.3,
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                  Icon(Icons.arrow_forward_ios_rounded,
+                      color: const Color(0xFF4FC3F7).withValues(alpha: 0.6),
+                      size: 14),
+                ],
+              ),
+            ),
+          ),
           const SizedBox(height: 10),
+          Divider(color: Colors.white.withValues(alpha: 0.1)),
+          const SizedBox(height: 8),
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Icon(Icons.info_outline_rounded,
-                  size: 14, color: Colors.white.withOpacity(0.4)),
+                  size: 14,
+                  color: Colors.white.withValues(alpha: 0.4)),
               const SizedBox(width: 6),
               Text(
                 'For documentation purposes only',
                 style: TextStyle(
-                  color: Colors.white.withOpacity(0.4),
+                  color: Colors.white.withValues(alpha: 0.4),
                   fontSize: 12,
                 ),
               ),
@@ -348,12 +377,9 @@ class _ModeCardState extends State<_ModeCard>
   void initState() {
     super.initState();
     _controller = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 120),
-    );
+        vsync: this, duration: const Duration(milliseconds: 120));
     _scaleAnim = Tween<double>(begin: 1.0, end: 0.96).animate(
-      CurvedAnimation(parent: _controller, curve: Curves.easeOut),
-    );
+        CurvedAnimation(parent: _controller, curve: Curves.easeOut));
   }
 
   @override
@@ -366,10 +392,7 @@ class _ModeCardState extends State<_ModeCard>
   Widget build(BuildContext context) {
     return GestureDetector(
       onTapDown: (_) => _controller.forward(),
-      onTapUp: (_) {
-        _controller.reverse();
-        widget.onTap();
-      },
+      onTapUp: (_) { _controller.reverse(); widget.onTap(); },
       onTapCancel: () => _controller.reverse(),
       child: ScaleTransition(
         scale: _scaleAnim,
@@ -384,7 +407,7 @@ class _ModeCardState extends State<_ModeCard>
             borderRadius: BorderRadius.circular(24),
             boxShadow: [
               BoxShadow(
-                color: widget.glowColor.withOpacity(0.35),
+                color: widget.glowColor.withValues(alpha: 0.35),
                 blurRadius: 20,
                 offset: const Offset(0, 8),
               ),
@@ -395,16 +418,16 @@ class _ModeCardState extends State<_ModeCard>
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // ── Title Row ──
                 Row(
                   children: [
                     Container(
                       padding: const EdgeInsets.all(10),
                       decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.18),
+                        color: Colors.white.withValues(alpha: 0.18),
                         borderRadius: BorderRadius.circular(14),
                       ),
-                      child: Icon(widget.icon, color: Colors.white, size: 26),
+                      child: Icon(widget.icon,
+                          color: Colors.white, size: 26),
                     ),
                     const SizedBox(width: 14),
                     Expanded(
@@ -424,7 +447,7 @@ class _ModeCardState extends State<_ModeCard>
                           Text(
                             widget.subtitle,
                             style: TextStyle(
-                              color: Colors.white.withOpacity(0.75),
+                              color: Colors.white.withValues(alpha: 0.75),
                               fontSize: 11.5,
                             ),
                           ),
@@ -439,7 +462,7 @@ class _ModeCardState extends State<_ModeCard>
                         borderRadius: BorderRadius.circular(20),
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.black.withOpacity(0.2),
+                            color: Colors.black.withValues(alpha: 0.2),
                             blurRadius: 8,
                           ),
                         ],
@@ -456,12 +479,11 @@ class _ModeCardState extends State<_ModeCard>
                     ),
                   ],
                 ),
-
                 const SizedBox(height: 16),
-                Divider(color: Colors.white.withOpacity(0.2), height: 1),
+                Divider(
+                    color: Colors.white.withValues(alpha: 0.2),
+                    height: 1),
                 const SizedBox(height: 14),
-
-                // ── Feature List ──
                 ...widget.features.map(
                   (feature) => Padding(
                     padding: const EdgeInsets.only(bottom: 7),
@@ -471,7 +493,7 @@ class _ModeCardState extends State<_ModeCard>
                           width: 18,
                           height: 18,
                           decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.2),
+                            color: Colors.white.withValues(alpha: 0.2),
                             shape: BoxShape.circle,
                           ),
                           child: const Icon(Icons.check,
@@ -481,7 +503,7 @@ class _ModeCardState extends State<_ModeCard>
                         Text(
                           feature,
                           style: TextStyle(
-                            color: Colors.white.withOpacity(0.9),
+                            color: Colors.white.withValues(alpha: 0.9),
                             fontSize: 12.5,
                             height: 1.3,
                           ),
@@ -490,32 +512,28 @@ class _ModeCardState extends State<_ModeCard>
                     ),
                   ),
                 ),
-
                 const SizedBox(height: 12),
-
-                // ── CTA Button ──
                 Align(
                   alignment: Alignment.centerRight,
                   child: Container(
                     padding: const EdgeInsets.symmetric(
                         horizontal: 18, vertical: 9),
                     decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.18),
+                      color: Colors.white.withValues(alpha: 0.18),
                       borderRadius: BorderRadius.circular(30),
                       border: Border.all(
-                          color: Colors.white.withOpacity(0.35), width: 1),
+                          color: Colors.white.withValues(alpha: 0.35),
+                          width: 1),
                     ),
                     child: const Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Text(
-                          'Open',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 13,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
+                        Text('Open',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 13,
+                              fontWeight: FontWeight.w700,
+                            )),
                         SizedBox(width: 6),
                         Icon(Icons.arrow_forward_rounded,
                             color: Colors.white, size: 16),

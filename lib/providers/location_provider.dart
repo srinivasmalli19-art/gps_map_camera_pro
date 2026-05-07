@@ -2,8 +2,8 @@
 
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
-import 'package:geocoding/geocoding.dart';
 import '../models/location_data.dart';
+import '../utils/geocoding_helper.dart';
 
 /// Manages location state across the app using ChangeNotifier
 class LocationProvider extends ChangeNotifier {
@@ -91,31 +91,8 @@ class LocationProvider extends ChangeNotifier {
     }
   }
 
-  /// Performs reverse geocoding for lat/lng → address string
-  Future<String> _reverseGeocode(double lat, double lng) async {
-    try {
-      final placemarks = await placemarkFromCoordinates(
-        lat,
-        lng,
-        localeIdentifier: 'en_IN',
-      );
-
-      if (placemarks.isNotEmpty) {
-        final p = placemarks.first;
-        final parts = <String>[
-          if (p.subLocality?.isNotEmpty == true) p.subLocality!,
-          if (p.locality?.isNotEmpty == true) p.locality!,
-          if (p.subAdministrativeArea?.isNotEmpty == true)
-            p.subAdministrativeArea!,
-          if (p.administrativeArea?.isNotEmpty == true) p.administrativeArea!,
-        ];
-        if (parts.isNotEmpty) return parts.take(3).join(', ');
-      }
-    } catch (e) {
-      debugPrint('Geocoding error: $e');
-    }
-    return 'Unknown Location';
-  }
+  Future<String> _reverseGeocode(double lat, double lng) =>
+      GeocodingHelper.reverseGeocode(lat, lng);
 
   // ── Helpers ───────────────────────────────────────────────
 

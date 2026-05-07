@@ -42,3 +42,7 @@ app.*.map.json
 
 # local.properties contains the Flutter SDK path — never commit this
 android/local.properties
+
+# Release signing — NEVER commit these
+android/key.properties
+android/app/release.jks

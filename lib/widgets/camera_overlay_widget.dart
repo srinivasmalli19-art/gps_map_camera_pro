@@ -1,4 +1,4 @@
-// lib/widgets/camera_overlay_widget.dart
+﻿// lib/widgets/camera_overlay_widget.dart
 //
 // This widget is rendered as a visual overlay ON TOP of the live camera preview.
 // It shows GPS info, map preview widget, and watermarks in real-time.
@@ -70,7 +70,7 @@ class _CameraOverlayWidgetState extends State<CameraOverlayWidget> {
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
           colors: [
-            Colors.black.withOpacity(0.6),
+            Colors.black.withValues(alpha: 0.6),
             Colors.transparent,
           ],
         ),
@@ -82,11 +82,11 @@ class _CameraOverlayWidgetState extends State<CameraOverlayWidget> {
           Text(
             'GPS Map Camera Pro',
             style: TextStyle(
-              color: Colors.white.withOpacity(0.85),
+              color: Colors.white.withValues(alpha: 0.85),
               fontSize: 12,
               fontWeight: FontWeight.w700,
               letterSpacing: 0.5,
-              shadows: [
+              shadows: const [
                 Shadow(color: Colors.black, blurRadius: 4),
               ],
             ),
@@ -104,8 +104,8 @@ class _CameraOverlayWidgetState extends State<CameraOverlayWidget> {
               borderRadius: BorderRadius.circular(20),
               border: Border.all(
                 color: isCustom
-                    ? Colors.purple.shade200.withOpacity(0.5)
-                    : Colors.teal.shade200.withOpacity(0.5),
+                    ? Colors.purple.shade200.withValues(alpha: 0.5)
+                    : Colors.teal.shade200.withValues(alpha: 0.5),
                 width: 1,
               ),
             ),
@@ -275,7 +275,7 @@ class _CameraOverlayWidgetState extends State<CameraOverlayWidget> {
         Text(
           'For documentation purposes only',
           style: TextStyle(
-            color: const Color(0xFFFFF59D).withOpacity(0.9),
+            color: const Color(0xFFFFF59D).withValues(alpha: 0.9),
             fontSize: 10.5,
             fontStyle: FontStyle.italic,
             shadows: const [Shadow(color: Colors.black, blurRadius: 3)],
@@ -289,9 +289,9 @@ class _CameraOverlayWidgetState extends State<CameraOverlayWidget> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.12),
+        color: Colors.white.withValues(alpha: 0.12),
         borderRadius: BorderRadius.circular(4),
-        border: Border.all(color: Colors.white.withOpacity(0.2)),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.2)),
       ),
       child: Text(
         text,
@@ -322,7 +322,7 @@ class _CameraOverlayWidgetState extends State<CameraOverlayWidget> {
               width: 1.5,
             ),
             boxShadow: [
-              BoxShadow(color: Colors.black.withOpacity(0.5), blurRadius: 8),
+              BoxShadow(color: Colors.black.withValues(alpha: 0.5), blurRadius: 8),
             ],
           ),
           child: ClipRRect(
@@ -365,7 +365,7 @@ class _CameraOverlayWidgetState extends State<CameraOverlayWidget> {
         Text(
           'MAP PREVIEW',
           style: TextStyle(
-            color: Colors.white.withOpacity(0.5),
+            color: Colors.white.withValues(alpha: 0.5),
             fontSize: 8,
             fontWeight: FontWeight.w700,
             letterSpacing: 1,
