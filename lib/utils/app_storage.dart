@@ -4,15 +4,14 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
+import '../constants/app_constants.dart';
 
 class AppStorage {
-  static const String folderName = 'GPS Map Camera Pro';
+  static String get folderName => AppConstants.folderName;   // "SLC GPS Map Camera Pro"
+  static String get filePrefix => AppConstants.filePrefix;   // "SLC_GPS_"
 
   // ── Directory ─────────────────────────────────────────────
 
-  /// Returns (and creates if needed) the app's dedicated photo folder.
-  /// Android: /storage/emulated/0/Android/data/<pkg>/files/GPS Map Camera Pro/
-  /// Fallback: app documents directory
   static Future<Directory?> getAppDirectory() async {
     try {
       Directory base;
@@ -33,6 +32,7 @@ class AppStorage {
 
   // ── File Naming ───────────────────────────────────────────
 
+  /// Generates "SLC_GPS_YYYYMMDD_HHMMSS.jpg"
   static String generateFileName() {
     final now = DateTime.now();
     final y  = now.year.toString().padLeft(4, '0');
@@ -41,7 +41,7 @@ class AppStorage {
     final h  = now.hour.toString().padLeft(2, '0');
     final mi = now.minute.toString().padLeft(2, '0');
     final s  = now.second.toString().padLeft(2, '0');
-    return 'GPS_$y$mo${d}_$h$mi$s.jpg';
+    return '${filePrefix}$y$mo${d}_$h$mi$s.jpg';
   }
 
   // ── Listing ───────────────────────────────────────────────
@@ -79,9 +79,7 @@ class AppStorage {
         name = '$name.jpg';
       }
       final newPath = '${file.parent.path}/$name';
-      if (await File(newPath).exists() && newPath != file.path) {
-        return null; // name already taken
-      }
+      if (await File(newPath).exists() && newPath != file.path) return null;
       return await file.rename(newPath);
     } catch (e) {
       debugPrint('[AppStorage] renameImage error: $e');
@@ -93,10 +91,7 @@ class AppStorage {
 
   static Future<bool> deleteImage(File file) async {
     try {
-      if (await file.exists()) {
-        await file.delete();
-        return true;
-      }
+      if (await file.exists()) { await file.delete(); return true; }
       return false;
     } catch (e) {
       debugPrint('[AppStorage] deleteImage error: $e');
@@ -106,31 +101,23 @@ class AppStorage {
 
   // ── Permissions ───────────────────────────────────────────
 
-  /// Requests storage/photos permission appropriate for the current
-  /// Android SDK version. Returns true when granted.
   static Future<bool> requestStoragePermission() async {
     if (!Platform.isAndroid) return true;
-
-    // Android 13+ needs READ_MEDIA_IMAGES; below that READ_EXTERNAL_STORAGE
-    final photos = await Permission.photos.status;
-    if (photos.isGranted) return true;
-
+    final photos  = await Permission.photos.status;
+    if (photos.isGranted)  return true;
     final storage = await Permission.storage.status;
     if (storage.isGranted) return true;
-
-    // Request whichever is applicable
-    final photosResult  = await Permission.photos.request();
-    if (photosResult.isGranted) return true;
-
-    final storageResult = await Permission.storage.request();
-    return storageResult.isGranted;
+    final pr = await Permission.photos.request();
+    if (pr.isGranted) return true;
+    final sr = await Permission.storage.request();
+    return sr.isGranted;
   }
 
   // ── Helpers ───────────────────────────────────────────────
 
   static String basenameWithoutExt(String path) {
-    final base = path.split('/').last.split('\\').last;
-    final dot = base.lastIndexOf('.');
+    final base = basename(path);
+    final dot  = base.lastIndexOf('.');
     return dot >= 0 ? base.substring(0, dot) : base;
   }
 

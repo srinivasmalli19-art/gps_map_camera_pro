@@ -35,7 +35,7 @@ class _GalleryScreenState extends State<GalleryScreen> {
         builder: (_) => PhotoPreviewScreen(imagePath: file.path),
       ),
     );
-    if (result == 'deleted' || result == 'renamed') {
+    if (result == 'deleted' || result == 'renamed' || result == 'edited') {
       await _loadImages();
     }
   }
@@ -178,7 +178,7 @@ class _GalleryScreenState extends State<GalleryScreen> {
           ),
           const SizedBox(height: 10),
           Text(
-            'Photos you capture with GPS Map Camera Pro\nwill appear here.',
+            'Photos you capture with SLC GPS Map Camera Pro\nwill appear here.',
             textAlign: TextAlign.center,
             style: TextStyle(
                 color: Colors.white.withValues(alpha: 0.45), fontSize: 14),

@@ -10,7 +10,8 @@
          Flutter UI initializes, as well as behind your Flutter UI while its
          running. -->
     <style name="NormalTheme" parent="@android:style/Theme.Black.NoTitleBar">
-        <item name="android:windowBackground">?android:colorBackground</item>
+        <!-- Black window background prevents white flash during orientation changes -->
+        <item name="android:windowBackground">@android:color/black</item>
         <item name="android:forceDarkAllowed">false</item>
     </style>
 </resources>

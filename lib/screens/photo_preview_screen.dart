@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:share_plus/share_plus.dart';
 import '../utils/app_storage.dart';
+import 'photo_editor_screen.dart';
 
 /// Shown immediately after capture (and when tapping a photo in the gallery).
 /// Supports share, rename and delete. Returns a result string to the caller:
@@ -20,6 +21,7 @@ class PhotoPreviewScreen extends StatefulWidget {
 class _PhotoPreviewScreenState extends State<PhotoPreviewScreen> {
   late String _currentPath;
   bool _isDeleted = false;
+  bool _isEdited  = false;
 
   @override
   void initState() {
@@ -113,6 +115,22 @@ class _PhotoPreviewScreenState extends State<PhotoPreviewScreen> {
     );
   }
 
+  Future<void> _editPhoto() async {
+    final newPath = await Navigator.push<String>(
+      context,
+      MaterialPageRoute(
+        builder: (_) => PhotoEditorScreen(imagePath: _currentPath),
+      ),
+    );
+    if (newPath != null && mounted) {
+      setState(() {
+        _currentPath = newPath;
+        _isEdited    = true;
+      });
+      _showSnackbar('Photo saved', const Color(0xFF00897B));
+    }
+  }
+
   void _deletePhoto() {
     showDialog(
       context: context,
@@ -197,8 +215,10 @@ class _PhotoPreviewScreenState extends State<PhotoPreviewScreen> {
                   children: [
                     _iconBtn(
                       icon: Icons.arrow_back_rounded,
-                      onTap: () =>
-                          Navigator.pop(context, _isDeleted ? 'deleted' : null),
+                      onTap: () => Navigator.pop(
+                        context,
+                        _isDeleted ? 'deleted' : (_isEdited ? 'edited' : null),
+                      ),
                     ),
                     const Spacer(),
                     Container(
@@ -255,6 +275,12 @@ class _PhotoPreviewScreenState extends State<PhotoPreviewScreen> {
                       label: 'Share',
                       color: const Color(0xFF4FC3F7),
                       onTap: _sharePhoto,
+                    ),
+                    _actionButton(
+                      icon: Icons.tune_rounded,
+                      label: 'Edit',
+                      color: const Color(0xFF80CBC4),
+                      onTap: _editPhoto,
                     ),
                     _actionButton(
                       icon: Icons.drive_file_rename_outline_rounded,
