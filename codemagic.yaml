@@ -1,0 +1,64 @@
+workflows:
+
+  # ── Android Release APK ─────────────────────────────────────────────────────
+  android-release:
+    name: Android Release APK
+    max_build_duration: 60
+    environment:
+      flutter: stable
+    scripts:
+      - name: Install Flutter packages
+        script: flutter pub get
+
+      - name: Build release APK
+        # Produces build/app/outputs/flutter-apk/app-release.apk
+        script: flutter build apk --release
+
+    artifacts:
+      - build/app/outputs/flutter-apk/app-release.apk
+
+    # Optional: email notification when build completes
+    # publishing:
+    #   email:
+    #     recipients:
+    #       - your@email.com
+
+  # ── Android Debug APK (quick test, no signing needed) ──────────────────────
+  android-debug:
+    name: Android Debug APK
+    max_build_duration: 45
+    environment:
+      flutter: stable
+    scripts:
+      - name: Install Flutter packages
+        script: flutter pub get
+
+      - name: Build debug APK
+        script: flutter build apk --debug
+
+    artifacts:
+      - build/app/outputs/flutter-apk/app-debug.apk
+
+  # ── iOS Release IPA ─────────────────────────────────────────────────────────
+  # Requires Apple signing certificates configured in Codemagic team settings.
+  # Uncomment and configure signing before using.
+  #
+  # ios-release:
+  #   name: iOS Release IPA
+  #   max_build_duration: 120
+  #   environment:
+  #     flutter: stable
+  #     xcode: latest
+  #     cocoapods: default
+  #     ios_signing:
+  #       distribution_type: app_store   # or: ad_hoc / development
+  #       bundle_identifier: com.srinivasmalli.gpsmapscamerapro
+  #   scripts:
+  #     - name: Install Flutter packages
+  #       script: flutter pub get
+  #     - name: Install CocoaPods
+  #       script: cd ios && pod install
+  #     - name: Build IPA
+  #       script: flutter build ipa --release --export-options-plist=/Users/builder/export_options.plist
+  #   artifacts:
+  #     - build/ios/ipa/*.ipa
