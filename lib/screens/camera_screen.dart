@@ -57,8 +57,9 @@ class _CameraScreenState extends State<CameraScreen>
   // ── Gallery thumbnail ─────────────────────────────────────
   String? _lastPhotoPath;
 
+  static const double _bottomNavH        = 90.0;
   static const double _landscapeOverlayH = 100.0;
-  static const double _portraitOverlayH  = 120.0;
+  static const double _portraitOverlayH  = 100.0; // GPS card height only
 
   @override
   void initState() {
@@ -340,11 +341,16 @@ class _CameraScreenState extends State<CameraScreen>
                 child: _buildCameraPreview(),
               ),
 
-              // Layer 2: GPS overlay
+              // Layer 2: GPS overlay — above bottom nav in portrait
               if (_isInitialized)
-                CameraOverlayWidget(
-                  locationData: locationData,
-                  isLandscape: isLandscape,
+                Positioned(
+                  bottom: isLandscape ? 0 : _bottomNavH,
+                  left: 0,
+                  right: isLandscape ? 88 : 0,
+                  child: CameraOverlayWidget(
+                    locationData: locationData,
+                    isLandscape: isLandscape,
+                  ),
                 ),
 
               // Layer 3: Rule-of-thirds grid
@@ -360,11 +366,11 @@ class _CameraScreenState extends State<CameraScreen>
               // Layer 6: Top bar
               _buildTopBar(locationData, isLandscape),
 
-              // Layer 7: Capture controls (layout differs by orientation)
+              // Layer 7: Capture controls
               if (isLandscape)
                 _buildLandscapeControls(overlayH)
               else
-                _buildPortraitControls(overlayH),
+                _buildPortraitBottomNav(),
 
               // Layer 8: No-permission wall
               if (!_hasCameraPermission) _buildNoPermissionOverlay(),
@@ -455,14 +461,32 @@ class _CameraScreenState extends State<CameraScreen>
       right: isLandscape ? 88 : 0,
       child: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
           child: Row(
             children: [
               _iconButton(Icons.close_rounded, () => Navigator.pop(context)),
-              const SizedBox(width: 10),
-              _gpsModeBadge(locationData),
               const Spacer(),
               _iconButton(_flashIcon, _toggleFlash),
+              const SizedBox(width: 8),
+              _iconButton(Icons.flip_camera_ios_rounded, _switchCamera),
+              const SizedBox(width: 8),
+              GestureDetector(
+                onTap: () {},
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: Colors.black.withValues(alpha: 0.45),
+                    borderRadius: BorderRadius.circular(11),
+                    border: Border.all(
+                        color: Colors.white.withValues(alpha: 0.15)),
+                  ),
+                  child: const Text('4:3',
+                      style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700)),
+                ),
+              ),
               const SizedBox(width: 8),
               _iconButton(
                 _showGrid ? Icons.grid_on_rounded : Icons.grid_off_rounded,
@@ -508,32 +532,46 @@ class _CameraScreenState extends State<CameraScreen>
     );
   }
 
-  // ── Portrait controls — bottom row ────────────────────────
+  // ── Portrait bottom nav ───────────────────────────────────
 
-  Widget _buildPortraitControls(double overlayH) {
-    final hasMultiple = (_cameras?.length ?? 0) > 1;
+  Widget _buildPortraitBottomNav() {
     return Positioned(
-      left: 0, right: 0, bottom: overlayH,
+      left: 0,
+      right: 0,
+      bottom: 0,
       child: Container(
-        height: 100,
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.bottomCenter,
-            end: Alignment.topCenter,
-            colors: [Colors.black.withValues(alpha: 0.50), Colors.transparent],
+        height: _bottomNavH,
+        color: Colors.black.withValues(alpha: 0.88),
+        child: SafeArea(
+          top: false,
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: [
+              _navButton(Icons.photo_library_outlined, 'Gallery', _openGallery),
+              _navButton(Icons.location_on_outlined, 'Location', _showInfoDialog),
+              _shutterButton(),
+              _navButton(Icons.map_outlined, 'Map', () {}),
+              _navButton(Icons.settings_outlined, 'Settings', () {}),
+            ],
           ),
         ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            _galleryThumb(),
-            _shutterButton(),
-            hasMultiple
-                ? _sideButton(Icons.flip_camera_ios_rounded, 'Flip', _switchCamera)
-                : _sideButton(Icons.info_outline_rounded, 'Info', _showInfoDialog),
-          ],
-        ),
+      ),
+    );
+  }
+
+  Widget _navButton(IconData icon, String label, VoidCallback onTap) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(icon, color: Colors.white70, size: 22),
+          const SizedBox(height: 3),
+          Text(label,
+              style: const TextStyle(
+                  color: Colors.white54, fontSize: 9, fontWeight: FontWeight.w600)),
+        ],
       ),
     );
   }
@@ -631,28 +669,6 @@ class _CameraScreenState extends State<CameraScreen>
     );
   }
 
-  Widget _gpsModeBadge(LocationData loc) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-      decoration: BoxDecoration(
-        color: loc.isCustom ? const Color(0xCC6A1B9A) : const Color(0xCC00695C),
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(
-            loc.isCustom ? Icons.edit_location_rounded : Icons.gps_fixed_rounded,
-            color: Colors.white, size: 12,
-          ),
-          const SizedBox(width: 4),
-          Text(loc.modeLabel,
-              style: const TextStyle(
-                  color: Colors.white, fontSize: 10, fontWeight: FontWeight.w800)),
-        ],
-      ),
-    );
-  }
 
   IconData get _flashIcon {
     switch (_flashMode) {

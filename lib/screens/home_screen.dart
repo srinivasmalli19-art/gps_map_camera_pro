@@ -1,598 +1,782 @@
 // lib/screens/home_screen.dart
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../providers/location_provider.dart';
-import 'map_picker_screen.dart';
 import 'camera_screen.dart';
+import 'live_gps_mode_screen.dart';
+import 'custom_location_info_screen.dart';
 import 'gallery_screen.dart';
 
-class HomeScreen extends StatelessWidget {
+class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [Color(0xFF1A1A2E), Color(0xFF16213E), Color(0xFF0F3460)],
-          ),
-        ),
-        child: SafeArea(
-          child: OrientationBuilder(
-            builder: (context, orientation) {
-              final isLandscape = orientation == Orientation.landscape;
-              return Column(
-                children: [
-                  _buildHeader(context, isLandscape),
-                  Expanded(child: _buildModeCards(context, isLandscape)),
-                  _buildFooter(context),
-                ],
-              );
-            },
-          ),
-        ),
-      ),
-    );
-  }
-
-  // ── Header ────────────────────────────────────────────────
-
-  Widget _buildHeader(BuildContext context, bool isLandscape) {
-    return Padding(
-      padding: EdgeInsets.fromLTRB(20, isLandscape ? 8 : 16, 20, isLandscape ? 6 : 10),
-      child: isLandscape ? _headerLandscape() : _headerPortrait(),
-    );
-  }
-
-  Widget _headerLandscape() {
-    // Single compact row for landscape
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        _appIcon(size: 22, padding: 9, radius: 13),
-        const SizedBox(width: 12),
-        const Text(
-          'SLC GPS Map Camera',
-          style: TextStyle(
-            color: Colors.white,
-            fontSize: 20,
-            fontWeight: FontWeight.w800,
-            letterSpacing: 0.5,
-          ),
-        ),
-        const SizedBox(width: 8),
-        _proBadge(),
-        const SizedBox(width: 14),
-        Flexible(
-          child: Text(
-            'Capture photos with precise GPS coordinates',
-            style: TextStyle(color: Colors.white.withValues(alpha: 0.5), fontSize: 12),
-            overflow: TextOverflow.ellipsis,
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _headerPortrait() {
-    // Stacked layout for portrait — no overflow risk
-    return Column(
-      children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            _appIcon(size: 24, padding: 10, radius: 14),
-            const SizedBox(width: 12),
-            const Text(
-              'SLC GPS Map Camera',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 20,
-                fontWeight: FontWeight.w800,
-                letterSpacing: 0.5,
-              ),
-            ),
-            const SizedBox(width: 8),
-            _proBadge(),
-          ],
-        ),
-        const SizedBox(height: 8),
-        Text(
-          'Capture photos with precise GPS coordinates',
-          style: TextStyle(color: Colors.white.withValues(alpha: 0.5), fontSize: 13),
-          textAlign: TextAlign.center,
-        ),
-      ],
-    );
-  }
-
-  Widget _appIcon({required double size, required double padding, required double radius}) {
-    return Container(
-      padding: EdgeInsets.all(padding),
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [Color(0xFF4FC3F7), Color(0xFF0288D1)],
-        ),
-        borderRadius: BorderRadius.circular(radius),
-        boxShadow: [
-          BoxShadow(
-            color: const Color(0xFF4FC3F7).withValues(alpha: 0.4),
-            blurRadius: 12,
-            offset: const Offset(0, 3),
-          ),
-        ],
-      ),
-      child: Icon(Icons.camera_alt_rounded, color: Colors.white, size: size),
-    );
-  }
-
-  Widget _proBadge() {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [Color(0xFF4FC3F7), Color(0xFF29B6F6)],
-        ),
-        borderRadius: BorderRadius.circular(6),
-      ),
-      child: const Text(
-        'PRO',
-        style: TextStyle(
-          color: Colors.white,
-          fontSize: 10,
-          fontWeight: FontWeight.w900,
-          letterSpacing: 2,
-        ),
-      ),
-    );
-  }
-
-  // ── Mode cards ────────────────────────────────────────────
-
-  Widget _buildModeCards(BuildContext context, bool isLandscape) {
-    final liveCard = _ModeCard(
-      icon: Icons.gps_fixed_rounded,
-      title: 'Live GPS Mode',
-      subtitle: 'Capture with real-time device location',
-      features: const [
-        'Auto-detect current GPS position',
-        'Real-time coordinates',
-        'Automatic reverse geocoding',
-        'Instant one-tap capture',
-      ],
-      gradientColors: const [Color(0xFF0D7377), Color(0xFF14A085)],
-      glowColor: const Color(0xFF14A085),
-      badgeText: 'LIVE',
-      badgeGradient: const LinearGradient(
-        colors: [Color(0xFF43A047), Color(0xFF66BB6A)],
-      ),
-      onTap: () => _handleLiveMode(context),
-    );
-
-    final customCard = _ModeCard(
-      icon: Icons.map_rounded,
-      title: 'Custom Location Mode',
-      subtitle: 'Manually select any location on map',
-      features: const [
-        'Select any point on Google Maps',
-        'Zoom, scroll & pinpoint location',
-        'Confirmation before capture',
-        'Custom location watermark added',
-      ],
-      gradientColors: const [Color(0xFF6A1B9A), Color(0xFF8E24AA)],
-      glowColor: const Color(0xFF8E24AA),
-      badgeText: 'CUSTOM',
-      badgeGradient: const LinearGradient(
-        colors: [Color(0xFFAB47BC), Color(0xFFCE93D8)],
-      ),
-      onTap: () => _handleCustomMode(context),
-    );
-
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: isLandscape
-          ? Row(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Expanded(child: liveCard),
-                const SizedBox(width: 14),
-                Expanded(child: customCard),
-              ],
-            )
-          : Column(
-              children: [
-                Expanded(child: liveCard),
-                const SizedBox(height: 14),
-                Expanded(child: customCard),
-              ],
-            ),
-    );
-  }
-
-  // ── Mode handlers ─────────────────────────────────────────
-
-  Future<void> _handleLiveMode(BuildContext context) async {
-    final provider = context.read<LocationProvider>();
-
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (_) => Dialog(
-        backgroundColor: Colors.transparent,
-        child: Container(
-          padding: const EdgeInsets.all(28),
-          decoration: BoxDecoration(
-            color: const Color(0xFF1E2A3A),
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
-          ),
-          child: const Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              CircularProgressIndicator(color: Color(0xFF4FC3F7), strokeWidth: 3),
-              SizedBox(height: 20),
-              Text('Getting GPS Location…',
-                  style: TextStyle(color: Colors.white, fontSize: 15)),
-              SizedBox(height: 6),
-              Text('Please wait. This may take a few seconds.',
-                  style: TextStyle(color: Colors.white54, fontSize: 12),
-                  textAlign: TextAlign.center),
-            ],
-          ),
-        ),
-      ),
-    );
-
-    final success = await provider.fetchLiveLocation();
-    if (!context.mounted) return;
-    Navigator.of(context).pop();
-
-    if (!success) {
-      _showErrorDialog(context, provider.error ?? 'Unknown error occurred.');
-      return;
-    }
-
-    Navigator.push(context, _buildPageRoute(const CameraScreen()));
-  }
-
-  void _handleCustomMode(BuildContext context) {
-    context.read<LocationProvider>().reset();
-    Navigator.push(context, _buildPageRoute(const MapPickerScreen()));
-  }
-
-  void _showErrorDialog(BuildContext context, String message) {
-    showDialog(
-      context: context,
-      builder: (_) => AlertDialog(
-        backgroundColor: const Color(0xFF1E2A3A),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Row(
-          children: [
-            Icon(Icons.error_outline_rounded, color: Colors.redAccent),
-            SizedBox(width: 10),
-            Text('Location Error', style: TextStyle(color: Colors.white)),
-          ],
-        ),
-        content: Text(message,
-            style: const TextStyle(color: Colors.white70, fontSize: 14)),
-        actions: [
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF4FC3F7),
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10)),
-            ),
-            onPressed: () => Navigator.pop(context),
-            child: const Text('OK', style: TextStyle(color: Colors.white)),
-          ),
-        ],
-      ),
-    );
-  }
-
-  PageRoute _buildPageRoute(Widget page) {
-    return PageRouteBuilder(
-      pageBuilder: (_, animation, __) => page,
-      transitionsBuilder: (_, animation, __, child) => FadeTransition(
-        opacity: animation,
-        child: SlideTransition(
-          position:
-              Tween(begin: const Offset(0.05, 0), end: Offset.zero).animate(
-            CurvedAnimation(parent: animation, curve: Curves.easeOutCubic),
-          ),
-          child: child,
-        ),
-      ),
-      transitionDuration: const Duration(milliseconds: 350),
-    );
-  }
-
-  // ── Footer ────────────────────────────────────────────────
-
-  Widget _buildFooter(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 4, 20, 14),
-      child: Column(
-        children: [
-          GestureDetector(
-            onTap: () => Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const GalleryScreen()),
-            ),
-            child: Container(
-              width: double.infinity,
-              padding:
-                  const EdgeInsets.symmetric(vertical: 12, horizontal: 20),
-              decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.07),
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(
-                    color: Colors.white.withValues(alpha: 0.12), width: 1),
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(Icons.photo_library_rounded,
-                      color: const Color(0xFF4FC3F7).withValues(alpha: 0.9),
-                      size: 20),
-                  const SizedBox(width: 10),
-                  const Text(
-                    'My Photos',
-                    style: TextStyle(
-                      color: Color(0xFF4FC3F7),
-                      fontSize: 14,
-                      fontWeight: FontWeight.w700,
-                      letterSpacing: 0.3,
-                    ),
-                  ),
-                  const SizedBox(width: 6),
-                  Icon(Icons.arrow_forward_ios_rounded,
-                      color: const Color(0xFF4FC3F7).withValues(alpha: 0.6),
-                      size: 14),
-                ],
-              ),
-            ),
-          ),
-          const SizedBox(height: 8),
-          Divider(color: Colors.white.withValues(alpha: 0.1)),
-          const SizedBox(height: 6),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(Icons.info_outline_rounded,
-                  size: 13, color: Colors.white.withValues(alpha: 0.4)),
-              const SizedBox(width: 6),
-              Text(
-                'For documentation purposes only',
-                style: TextStyle(
-                  color: Colors.white.withValues(alpha: 0.4),
-                  fontSize: 12,
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
+  State<HomeScreen> createState() => _HomeScreenState();
 }
 
-// ── Mode card widget ──────────────────────────────────────────────────────────
-
-class _ModeCard extends StatefulWidget {
-  final IconData icon;
-  final String title;
-  final String subtitle;
-  final List<String> features;
-  final List<Color> gradientColors;
-  final Color glowColor;
-  final String badgeText;
-  final Gradient badgeGradient;
-  final VoidCallback onTap;
-
-  const _ModeCard({
-    required this.icon,
-    required this.title,
-    required this.subtitle,
-    required this.features,
-    required this.gradientColors,
-    required this.glowColor,
-    required this.badgeText,
-    required this.badgeGradient,
-    required this.onTap,
-  });
-
-  @override
-  State<_ModeCard> createState() => _ModeCardState();
-}
-
-class _ModeCardState extends State<_ModeCard>
-    with SingleTickerProviderStateMixin {
-  late AnimationController _controller;
-  late Animation<double> _scaleAnim;
+class _HomeScreenState extends State<HomeScreen> {
+  int _selectedTab = 0;
 
   @override
   void initState() {
     super.initState();
-    _controller = AnimationController(
-        vsync: this, duration: const Duration(milliseconds: 120));
-    _scaleAnim = Tween<double>(begin: 1.0, end: 0.96).animate(
-        CurvedAnimation(parent: _controller, curve: Curves.easeOut));
+    SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
+      statusBarColor: Colors.transparent,
+      statusBarIconBrightness: Brightness.dark,
+    ));
   }
 
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
+  Future<void> _openLiveCamera() async {
+    final provider = context.read<LocationProvider>();
+    if (!mounted) return;
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => const _LoadingDialog(),
+    );
+    final ok = await provider.fetchLiveLocation();
+    if (!mounted) return;
+    Navigator.pop(context);
+    if (!ok) return;
+    Navigator.push(
+      context,
+      PageRouteBuilder(
+        pageBuilder: (_, a, __) => const CameraScreen(),
+        transitionsBuilder: (_, a, __, child) =>
+            FadeTransition(opacity: a, child: child),
+        transitionDuration: const Duration(milliseconds: 300),
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTapDown: (_) => _controller.forward(),
-      onTapUp: (_) {
-        _controller.reverse();
-        widget.onTap();
-      },
-      onTapCancel: () => _controller.reverse(),
-      child: ScaleTransition(
-        scale: _scaleAnim,
-        child: Container(
-          width: double.infinity,
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: widget.gradientColors,
-            ),
-            borderRadius: BorderRadius.circular(24),
-            boxShadow: [
-              BoxShadow(
-                color: widget.glowColor.withValues(alpha: 0.35),
-                blurRadius: 20,
-                offset: const Offset(0, 8),
+    return Scaffold(
+      backgroundColor: Colors.white,
+      body: IndexedStack(
+        index: _selectedTab,
+        children: [
+          _HomeContent(onCameraTab: _openLiveCamera),
+          const GalleryScreen(),
+          const SizedBox(), // Camera tab — handled via onTap
+          const _PlaceholderTab(label: 'Map', icon: Icons.map_rounded),
+          const _PlaceholderTab(label: 'Settings', icon: Icons.settings_rounded),
+        ],
+      ),
+      bottomNavigationBar: _BottomNav(
+        selectedIndex: _selectedTab,
+        onTap: (i) {
+          if (i == 2) {
+            _openLiveCamera();
+          } else {
+            setState(() => _selectedTab = i);
+          }
+        },
+      ),
+    );
+  }
+}
+
+// ── Home tab content ──────────────────────────────────────────────────────────
+
+class _HomeContent extends StatelessWidget {
+  final VoidCallback onCameraTab;
+  const _HomeContent({required this.onCameraTab});
+
+  @override
+  Widget build(BuildContext context) {
+    return SafeArea(
+      child: CustomScrollView(
+        slivers: [
+          SliverToBoxAdapter(child: _buildTopBar(context)),
+          SliverToBoxAdapter(child: _buildGpsStatusBar()),
+          SliverToBoxAdapter(child: _buildLiveGpsCard(context)),
+          SliverToBoxAdapter(child: _buildCustomLocationCard(context)),
+          SliverToBoxAdapter(child: _buildMyPhotosRow(context)),
+          const SliverToBoxAdapter(child: SizedBox(height: 20)),
+        ],
+      ),
+    );
+  }
+
+  // ── Top bar ─────────────────────────────────────────────────────
+
+  Widget _buildTopBar(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+      child: Row(
+        children: [
+          const Icon(Icons.menu_rounded, color: Color(0xFF333333), size: 26),
+          const SizedBox(width: 10),
+
+          // Logo
+          Row(
+            children: [
+              Container(
+                width: 34,
+                height: 34,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFFC107),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Icon(Icons.camera_alt_rounded,
+                    color: Color(0xFF1A1A2E), size: 18),
+              ),
+              const SizedBox(width: 8),
+              RichText(
+                text: const TextSpan(
+                  children: [
+                    TextSpan(
+                      text: 'SLC ',
+                      style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w900,
+                          color: Color(0xFF111827)),
+                    ),
+                    TextSpan(
+                      text: 'GPS',
+                      style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w900,
+                          color: Color(0xFF2E7D32)),
+                    ),
+                    TextSpan(
+                      text: '\nMAP CAMERA',
+                      style: TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.w700,
+                          color: Color(0xFF555555),
+                          letterSpacing: 1),
+                    ),
+                  ],
+                ),
               ),
             ],
           ),
-          child: Padding(
-            padding: const EdgeInsets.all(20),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Title row
-                Row(
+
+          const Spacer(),
+
+          // Bell with badge
+          Stack(
+            children: [
+              Container(
+                width: 38,
+                height: 38,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF5F5F5),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Icon(Icons.notifications_outlined,
+                    color: Color(0xFF333333), size: 20),
+              ),
+              Positioned(
+                top: 6,
+                right: 6,
+                child: Container(
+                  width: 16,
+                  height: 16,
+                  decoration: const BoxDecoration(
+                      color: Colors.red, shape: BoxShape.circle),
+                  child: const Center(
+                    child: Text('3',
+                        style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 9,
+                            fontWeight: FontWeight.w800)),
+                  ),
+                ),
+              ),
+            ],
+          ),
+
+          const SizedBox(width: 8),
+
+          // Profile
+          Container(
+            width: 38,
+            height: 38,
+            decoration: BoxDecoration(
+              color: const Color(0xFFE8F5E9),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: const Icon(Icons.person_rounded,
+                color: Color(0xFF2E7D32), size: 22),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ── GPS status bar ───────────────────────────────────────────────
+
+  Widget _buildGpsStatusBar() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+        decoration: BoxDecoration(
+          color: const Color(0xFFE8F5E9),
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: const Color(0xFFA5D6A7)),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 38,
+              height: 38,
+              decoration: const BoxDecoration(
+                  color: Color(0xFF2E7D32), shape: BoxShape.circle),
+              child: const Icon(Icons.gps_fixed_rounded,
+                  color: Colors.white, size: 18),
+            ),
+            const SizedBox(width: 12),
+            const Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('GPS Connected',
+                      style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w800,
+                          color: Color(0xFF2E7D32))),
+                  Text('Accuracy: 2.1 m  •  12 Satellites',
+                      style: TextStyle(fontSize: 11, color: Color(0xFF555555))),
+                ],
+              ),
+            ),
+            Container(
+              width: 36,
+              height: 36,
+              decoration: BoxDecoration(
+                color: const Color(0xFFD4EDDA),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: const Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.gps_not_fixed_rounded,
+                      color: Color(0xFF2E7D32), size: 16),
+                  Text('>',
+                      style: TextStyle(
+                          color: Color(0xFF2E7D32),
+                          fontSize: 12,
+                          fontWeight: FontWeight.w800)),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // ── Live GPS card ────────────────────────────────────────────────
+
+  Widget _buildLiveGpsCard(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+      child: GestureDetector(
+        onTap: () => Navigator.push(context,
+            MaterialPageRoute(builder: (_) => const LiveGpsModeScreen())),
+        child: Container(
+          padding: const EdgeInsets.all(18),
+          decoration: BoxDecoration(
+            color: const Color(0xFFE8F5E9),
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: const Color(0xFFA5D6A7)),
+          ),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Container(
-                      padding: const EdgeInsets.all(10),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.18),
-                        borderRadius: BorderRadius.circular(14),
-                      ),
-                      child: Icon(widget.icon, color: Colors.white, size: 26),
-                    ),
-                    const SizedBox(width: 14),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            widget.title,
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 17,
-                              fontWeight: FontWeight.w800,
-                              letterSpacing: 0.2,
-                            ),
-                          ),
-                          const SizedBox(height: 3),
-                          Text(
-                            widget.subtitle,
+                    Row(
+                      children: [
+                        const Text('Live GPS Mode',
                             style: TextStyle(
-                              color: Colors.white.withValues(alpha: 0.75),
-                              fontSize: 11.5,
-                            ),
+                                fontSize: 17,
+                                fontWeight: FontWeight.w800,
+                                color: Color(0xFF111827))),
+                        const SizedBox(width: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 8, vertical: 3),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF2E7D32),
+                            borderRadius: BorderRadius.circular(20),
                           ),
-                        ],
-                      ),
+                          child: const Text('LIVE',
+                              style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w900,
+                                  letterSpacing: 1)),
+                        ),
+                      ],
                     ),
+                    const SizedBox(height: 6),
+                    const Text('Capture with real-time\ndevice location',
+                        style: TextStyle(
+                            fontSize: 13,
+                            color: Color(0xFF555555),
+                            height: 1.4)),
+                    const SizedBox(height: 14),
                     Container(
                       padding: const EdgeInsets.symmetric(
-                          horizontal: 10, vertical: 5),
+                          horizontal: 14, vertical: 10),
                       decoration: BoxDecoration(
-                        gradient: widget.badgeGradient,
-                        borderRadius: BorderRadius.circular(20),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.2),
-                            blurRadius: 8,
-                          ),
-                        ],
+                        color: const Color(0xFF2E7D32),
+                        borderRadius: BorderRadius.circular(12),
                       ),
-                      child: Text(
-                        widget.badgeText,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 10,
-                          fontWeight: FontWeight.w900,
-                          letterSpacing: 1.2,
-                        ),
+                      child: const Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text('Open Camera',
+                              style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w700)),
+                          SizedBox(width: 6),
+                          Icon(Icons.camera_alt_rounded,
+                              color: Colors.white, size: 15),
+                          SizedBox(width: 4),
+                          Icon(Icons.arrow_forward_rounded,
+                              color: Colors.white, size: 14),
+                        ],
                       ),
                     ),
                   ],
                 ),
+              ),
+              const _LiveModeIllustration(),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 
-                const SizedBox(height: 14),
-                Divider(color: Colors.white.withValues(alpha: 0.2), height: 1),
-                const SizedBox(height: 12),
+  // ── Custom Location card ─────────────────────────────────────────
 
-                // Feature list
-                ...widget.features.map(
-                  (feature) => Padding(
-                    padding: const EdgeInsets.only(bottom: 7),
-                    child: Row(
+  Widget _buildCustomLocationCard(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+      child: GestureDetector(
+        onTap: () => Navigator.push(context,
+            MaterialPageRoute(
+                builder: (_) => const CustomLocationInfoScreen())),
+        child: Container(
+          padding: const EdgeInsets.all(18),
+          decoration: BoxDecoration(
+            color: const Color(0xFFF3E8FF),
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: const Color(0xFFDDD6FE)),
+          ),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Wrap(
+                      spacing: 6,
+                      crossAxisAlignment: WrapCrossAlignment.center,
                       children: [
+                        const Text('Custom Location Mode',
+                            style: TextStyle(
+                                fontSize: 15,
+                                fontWeight: FontWeight.w800,
+                                color: Color(0xFF111827))),
                         Container(
-                          width: 18,
-                          height: 18,
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 8, vertical: 3),
                           decoration: BoxDecoration(
-                            color: Colors.white.withValues(alpha: 0.2),
-                            shape: BoxShape.circle,
+                            color: const Color(0xFF7C3AED),
+                            borderRadius: BorderRadius.circular(20),
                           ),
-                          child: const Icon(Icons.check,
-                              color: Colors.white, size: 12),
-                        ),
-                        const SizedBox(width: 10),
-                        Flexible(
-                          child: Text(
-                            feature,
-                            style: TextStyle(
-                              color: Colors.white.withValues(alpha: 0.9),
-                              fontSize: 12.5,
-                              height: 1.3,
-                            ),
-                          ),
+                          child: const Text('CUSTOM',
+                              style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 9,
+                                  fontWeight: FontWeight.w900,
+                                  letterSpacing: 1)),
                         ),
                       ],
                     ),
-                  ),
+                    const SizedBox(height: 6),
+                    const Text('Manually select any location\non map',
+                        style: TextStyle(
+                            fontSize: 13,
+                            color: Color(0xFF555555),
+                            height: 1.4)),
+                    const SizedBox(height: 14),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 14, vertical: 10),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF7C3AED),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: const Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.location_on_rounded,
+                              color: Colors.white, size: 15),
+                          SizedBox(width: 6),
+                          Text('Select Location',
+                              style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w700)),
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
+              ),
+              const _CustomModeIllustration(),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 
-                const SizedBox(height: 10),
-                Align(
-                  alignment: Alignment.centerRight,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 18, vertical: 9),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.18),
-                      borderRadius: BorderRadius.circular(30),
-                      border: Border.all(
-                          color: Colors.white.withValues(alpha: 0.35),
-                          width: 1),
-                    ),
-                    child: const Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text('Open',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 13,
-                              fontWeight: FontWeight.w700,
-                            )),
-                        SizedBox(width: 6),
-                        Icon(Icons.arrow_forward_rounded,
-                            color: Colors.white, size: 16),
-                      ],
-                    ),
-                  ),
+  // ── My Photos row ────────────────────────────────────────────────
+
+  Widget _buildMyPhotosRow(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 4, 16, 0),
+      child: GestureDetector(
+        onTap: () => Navigator.push(context,
+            MaterialPageRoute(builder: (_) => const GalleryScreen())),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: const Color(0xFFE5E7EB)),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.04),
+                blurRadius: 8,
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 42,
+                height: 42,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFEFF6FF),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: const Icon(Icons.photo_library_rounded,
+                    color: Color(0xFF3B82F6), size: 22),
+              ),
+              const SizedBox(width: 14),
+              const Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('My Photos',
+                        style: TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w700,
+                            color: Color(0xFF111827))),
+                    Text('View all captured photos',
+                        style: TextStyle(
+                            fontSize: 12, color: Color(0xFF6B7280))),
+                  ],
+                ),
+              ),
+              const Icon(Icons.arrow_forward_ios_rounded,
+                  color: Color(0xFF9CA3AF), size: 16),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ── Illustrations ─────────────────────────────────────────────────────────────
+
+class _LiveModeIllustration extends StatelessWidget {
+  const _LiveModeIllustration();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 86,
+      height: 110,
+      margin: const EdgeInsets.only(left: 8),
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          Container(
+            width: 58,
+            height: 88,
+            decoration: BoxDecoration(
+              color: const Color(0xFF1A1A2E),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: const Color(0xFF2E7D32), width: 2),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.all(4),
+              child: Container(
+                decoration: BoxDecoration(
+                  color: const Color(0xFFD4EDDA),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Center(
+                  child: Icon(Icons.map_rounded,
+                      color: Color(0xFF2E7D32), size: 22),
+                ),
+              ),
+            ),
+          ),
+          Positioned(
+            top: 4,
+            right: 4,
+            child: Container(
+              width: 26,
+              height: 26,
+              decoration: const BoxDecoration(
+                  color: Color(0xFF2E7D32), shape: BoxShape.circle),
+              child: const Icon(Icons.gps_fixed_rounded,
+                  color: Colors.white, size: 13),
+            ),
+          ),
+          const Positioned(
+            bottom: 0,
+            left: 0,
+            child: Icon(Icons.satellite_alt_rounded,
+                color: Color(0xFF555555), size: 20),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _CustomModeIllustration extends StatelessWidget {
+  const _CustomModeIllustration();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 86,
+      height: 110,
+      margin: const EdgeInsets.only(left: 8),
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          Container(
+            width: 72,
+            height: 88,
+            decoration: BoxDecoration(
+              color: const Color(0xFFEDE9FE),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: CustomPaint(painter: _SmallMapGrid()),
+          ),
+          const Positioned(
+            top: 6,
+            child: Icon(Icons.location_on, color: Color(0xFF7C3AED), size: 38),
+          ),
+          Positioned(
+            top: 40,
+            child: Container(
+              width: 22,
+              height: 7,
+              decoration: BoxDecoration(
+                color: const Color(0xFF7C3AED).withValues(alpha: 0.2),
+                borderRadius: BorderRadius.circular(4),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SmallMapGrid extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final p = Paint()
+      ..color = const Color(0xFFDDD6FE)
+      ..strokeWidth = 1;
+    canvas.drawLine(Offset(size.width / 2, 0),
+        Offset(size.width / 2, size.height), p);
+    canvas.drawLine(Offset(0, size.height / 2),
+        Offset(size.width, size.height / 2), p);
+    canvas.drawLine(Offset(0, size.height / 3),
+        Offset(size.width, size.height / 3), p);
+    canvas.drawLine(Offset(size.width / 3, 0),
+        Offset(size.width / 3, size.height), p);
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter old) => false;
+}
+
+// ── Bottom navigation ─────────────────────────────────────────────────────────
+
+class _BottomNav extends StatelessWidget {
+  final int selectedIndex;
+  final ValueChanged<int> onTap;
+  const _BottomNav({required this.selectedIndex, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: 72,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.08),
+            blurRadius: 16,
+            offset: const Offset(0, -4),
+          ),
+        ],
+      ),
+      child: SafeArea(
+        top: false,
+        child: Row(
+          children: [
+            _navItem(0, Icons.home_rounded, 'Home'),
+            _navItem(1, Icons.photo_library_outlined, 'Photos'),
+            _cameraItem(),
+            _navItem(3, Icons.map_outlined, 'Map'),
+            _navItem(4, Icons.settings_outlined, 'Settings'),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _navItem(int index, IconData icon, String label) {
+    final sel = selectedIndex == index;
+    return Expanded(
+      child: GestureDetector(
+        onTap: () => onTap(index),
+        behavior: HitTestBehavior.opaque,
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(icon, size: 22,
+                color: sel ? const Color(0xFF2E7D32) : const Color(0xFF9CA3AF)),
+            const SizedBox(height: 3),
+            Text(label,
+                style: TextStyle(
+                    fontSize: 10,
+                    fontWeight: sel ? FontWeight.w700 : FontWeight.w500,
+                    color: sel
+                        ? const Color(0xFF2E7D32)
+                        : const Color(0xFF9CA3AF))),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _cameraItem() {
+    return Expanded(
+      child: GestureDetector(
+        onTap: () => onTap(2),
+        behavior: HitTestBehavior.opaque,
+        child: Center(
+          child: Container(
+            width: 52,
+            height: 52,
+            decoration: const BoxDecoration(
+              color: Color(0xFF2E7D32),
+              shape: BoxShape.circle,
+              boxShadow: [
+                BoxShadow(
+                  color: Color(0x442E7D32),
+                  blurRadius: 12,
+                  offset: Offset(0, 4),
                 ),
               ],
             ),
+            child: const Icon(Icons.camera_alt_rounded,
+                color: Colors.white, size: 24),
           ),
+        ),
+      ),
+    );
+  }
+}
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+
+class _PlaceholderTab extends StatelessWidget {
+  final String label;
+  final IconData icon;
+  const _PlaceholderTab({required this.label, required this.icon});
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 48, color: const Color(0xFFCCCCCC)),
+          const SizedBox(height: 12),
+          Text(label,
+              style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  color: Color(0xFFAAAAAA))),
+          const SizedBox(height: 6),
+          const Text('Coming soon',
+              style: TextStyle(fontSize: 12, color: Color(0xFFCCCCCC))),
+        ],
+      ),
+    );
+  }
+}
+
+class _LoadingDialog extends StatelessWidget {
+  const _LoadingDialog();
+
+  @override
+  Widget build(BuildContext context) {
+    return Dialog(
+      backgroundColor: Colors.transparent,
+      child: Container(
+        padding: const EdgeInsets.all(28),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: const Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            CircularProgressIndicator(
+                color: Color(0xFF2E7D32), strokeWidth: 3),
+            SizedBox(height: 20),
+            Text('Getting GPS Location…',
+                style: TextStyle(
+                    fontWeight: FontWeight.w700,
+                    fontSize: 15,
+                    color: Color(0xFF111827))),
+            SizedBox(height: 4),
+            Text('Please wait a moment.',
+                style:
+                    TextStyle(color: Color(0xFF6B7280), fontSize: 12)),
+          ],
         ),
       ),
     );

@@ -1,4 +1,4 @@
-﻿// lib/screens/map_picker_screen.dart
+// lib/screens/map_picker_screen.dart
 
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
@@ -8,9 +8,6 @@ import 'package:provider/provider.dart';
 import '../providers/location_provider.dart';
 import 'camera_screen.dart';
 
-/// Map Picker Screen — Custom Location Mode (Step 2–5)
-/// Allows the user to tap anywhere on Google Maps, see location info,
-/// confirm the selection, and proceed to the camera.
 class MapPickerScreen extends StatefulWidget {
   const MapPickerScreen({super.key});
 
@@ -27,7 +24,6 @@ class _MapPickerScreenState extends State<MapPickerScreen>
   bool _isPanelVisible = false;
   Set<Marker> _markers = {};
 
-  // Default camera position — center of India
   static const CameraPosition _defaultCamera = CameraPosition(
     target: LatLng(20.5937, 78.9629),
     zoom: 4.5,
@@ -59,6 +55,7 @@ class _MapPickerScreenState extends State<MapPickerScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.white,
       body: Stack(
         children: [
           // ── Google Map ──
@@ -70,51 +67,40 @@ class _MapPickerScreenState extends State<MapPickerScreen>
             myLocationEnabled: true,
             myLocationButtonEnabled: false,
             zoomControlsEnabled: false,
-            compassEnabled: true,
+            compassEnabled: false,
             mapToolbarEnabled: false,
             mapType: MapType.normal,
           ),
 
-          // ── Top Bar ──
+          // ── Top bar ──
           _buildTopBar(),
 
-          // ── Hint Bubble (shown when no location selected) ──
+          // ── Hint bubble (no location yet) ──
           if (!_isPanelVisible) _buildHintBubble(),
 
-          // ── Location Info Panel ──
+          // ── Bottom panel (location selected) ──
           if (_isPanelVisible)
-            SlideTransition(
-              position: _panelSlide,
-              child: _buildInfoPanel(),
+            Positioned(
+              bottom: 0,
+              left: 0,
+              right: 0,
+              child: SlideTransition(
+                position: _panelSlide,
+                child: _buildBottomPanel(),
+              ),
             ),
 
-          // ── Zoom Controls ──
+          // ── Zoom controls ──
           _buildZoomControls(),
 
-          // ── Loading Indicator ──
+          // ── Loading overlay ──
           if (_isLoadingAddress) _buildLoadingIndicator(),
         ],
       ),
-      floatingActionButton: _selectedLocation != null
-          ? FloatingActionButton.extended(
-              onPressed: _showConfirmDialog,
-              backgroundColor: const Color(0xFF6A1B9A),
-              elevation: 6,
-              icon: const Icon(Icons.check_circle_outline_rounded,
-                  color: Colors.white),
-              label: const Text(
-                'Use This Location',
-                style: TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 15),
-              ),
-            )
-          : null,
     );
   }
 
-  // ── Map Callbacks ─────────────────────────────────────────
+  // ── Map callbacks ─────────────────────────────────────────
 
   void _onMapCreated(GoogleMapController controller) {
     _mapController = controller;
@@ -139,9 +125,7 @@ class _MapPickerScreenState extends State<MapPickerScreen>
           ),
         );
       }
-    } catch (_) {
-      // Silently fail — user can navigate manually
-    }
+    } catch (_) {}
   }
 
   Future<void> _onMapTapped(LatLng position) async {
@@ -152,37 +136,29 @@ class _MapPickerScreenState extends State<MapPickerScreen>
         Marker(
           markerId: const MarkerId('selected_location'),
           position: position,
-          icon: BitmapDescriptor.defaultMarkerWithHue(
-              BitmapDescriptor.hueViolet),
-          infoWindow: InfoWindow(
-            title: 'Selected Location',
-            snippet:
-                '${position.latitude.toStringAsFixed(4)}°, ${position.longitude.toStringAsFixed(4)}°',
-          ),
+          icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueViolet),
         ),
       };
     });
 
     if (!_isPanelVisible) {
-      _isPanelVisible = true;
+      setState(() => _isPanelVisible = true);
       _panelController.forward();
     }
 
-    // Reverse geocode
     final address = await GeocodingHelper.reverseGeocode(
       position.latitude,
       position.longitude,
     );
-    setState(() => _selectedAddress = address);
-
-    setState(() => _isLoadingAddress = false);
-
-    // Show marker info window
-    _mapController
-        ?.showMarkerInfoWindow(const MarkerId('selected_location'));
+    if (mounted) {
+      setState(() {
+        _selectedAddress = address;
+        _isLoadingAddress = false;
+      });
+    }
   }
 
-  // ── UI Components ─────────────────────────────────────────
+  // ── UI components ─────────────────────────────────────────
 
   Widget _buildTopBar() {
     return Positioned(
@@ -190,93 +166,70 @@ class _MapPickerScreenState extends State<MapPickerScreen>
       left: 0,
       right: 0,
       child: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
-          child: Container(
-            padding:
-                const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(18),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.12),
-                  blurRadius: 12,
-                  offset: const Offset(0, 4),
-                ),
-              ],
-            ),
-            child: Row(
-              children: [
-                // Back button
-                GestureDetector(
-                  onTap: () => Navigator.pop(context),
-                  child: Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: Colors.grey.shade100,
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: const Icon(Icons.arrow_back_ios_new_rounded,
-                        size: 18, color: Color(0xFF333333)),
-                  ),
-                ),
-                const SizedBox(width: 12),
-
-                // Title
-                const Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Select Location on Map',
-                        style: TextStyle(
-                          fontWeight: FontWeight.w800,
-                          fontSize: 15,
-                          color: Color(0xFF1A1A2E),
-                        ),
-                      ),
-                      Text(
-                        'Tap anywhere to place a marker',
-                        style: TextStyle(
-                          color: Colors.grey,
-                          fontSize: 11,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-
-                // Custom badge
-                Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+        child: Container(
+          margin: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.12),
+                blurRadius: 12,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          child: Row(
+            children: [
+              GestureDetector(
+                onTap: () => Navigator.pop(context),
+                child: Container(
+                  width: 36,
+                  height: 36,
                   decoration: BoxDecoration(
-                    gradient: const LinearGradient(
-                      colors: [Color(0xFF6A1B9A), Color(0xFF8E24AA)],
-                    ),
-                    borderRadius: BorderRadius.circular(20),
+                    color: const Color(0xFFF5F5F5),
+                    borderRadius: BorderRadius.circular(10),
                   ),
-                  child: const Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(Icons.edit_location_alt_rounded,
-                          color: Colors.white, size: 12),
-                      SizedBox(width: 4),
-                      Text(
-                        'CUSTOM',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 9,
-                          fontWeight: FontWeight.w900,
-                          letterSpacing: 1,
-                        ),
-                      ),
-                    ],
-                  ),
+                  child: const Icon(Icons.arrow_back_ios_new_rounded,
+                      size: 16, color: Color(0xFF333333)),
                 ),
-              ],
-            ),
+              ),
+              const SizedBox(width: 12),
+              const Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      'Select Location',
+                      style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w800,
+                        color: Color(0xFF111827),
+                      ),
+                    ),
+                    Text(
+                      'Search or pick a location on map',
+                      style: TextStyle(fontSize: 11, color: Color(0xFF6B7280)),
+                    ),
+                  ],
+                ),
+              ),
+              GestureDetector(
+                onTap: _tryGoToCurrentLocation,
+                child: Container(
+                  width: 36,
+                  height: 36,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF3E8FF),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: const Icon(Icons.gps_fixed_rounded,
+                      size: 18, color: Color(0xFF7C3AED)),
+                ),
+              ),
+            ],
           ),
         ),
       ),
@@ -284,15 +237,11 @@ class _MapPickerScreenState extends State<MapPickerScreen>
   }
 
   Widget _buildHintBubble() {
-    return Positioned(
-      top: 0,
-      left: 0,
-      right: 0,
-      bottom: 0,
+    return Positioned.fill(
       child: IgnorePointer(
-        child: Center(
+        child: Align(
+          alignment: const Alignment(0, 0.2),
           child: Container(
-            margin: const EdgeInsets.only(top: 80),
             padding:
                 const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
             decoration: BoxDecoration(
@@ -302,7 +251,7 @@ class _MapPickerScreenState extends State<MapPickerScreen>
             child: const Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(Icons.touch_app_rounded, color: Colors.white, size: 20),
+                Icon(Icons.touch_app_rounded, color: Colors.white, size: 18),
                 SizedBox(width: 8),
                 Text(
                   'Tap on the map to select a location',
@@ -316,237 +265,246 @@ class _MapPickerScreenState extends State<MapPickerScreen>
     );
   }
 
-  Widget _buildInfoPanel() {
-    return Positioned(
-      bottom: 90,
-      left: 16,
-      right: 16,
-      child: Container(
-        padding: const EdgeInsets.all(18),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(20),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.15),
-              blurRadius: 20,
-              offset: const Offset(0, 6),
-            ),
-          ],
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            // Panel header
-            Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(7),
-                  decoration: BoxDecoration(
-                    color: Colors.red.shade50,
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: Icon(Icons.location_pin,
-                      color: Colors.red.shade600, size: 18),
-                ),
-                const SizedBox(width: 10),
-                const Text(
-                  'Selected Location',
-                  style: TextStyle(
-                    fontWeight: FontWeight.w800,
-                    fontSize: 15,
-                    color: Color(0xFF1A1A2E),
-                  ),
-                ),
-                const Spacer(),
-                if (_isLoadingAddress)
-                  const SizedBox(
-                    width: 16,
-                    height: 16,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
-                else
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 8, vertical: 3),
-                    decoration: BoxDecoration(
-                      color: Colors.green.shade50,
-                      borderRadius: BorderRadius.circular(10),
-                      border: Border.all(color: Colors.green.shade200),
-                    ),
-                    child: Text(
-                      'CONFIRMED',
-                      style: TextStyle(
-                        color: Colors.green.shade700,
-                        fontSize: 9,
-                        fontWeight: FontWeight.w900,
-                        letterSpacing: 1,
-                      ),
-                    ),
-                  ),
-              ],
-            ),
-
-            const SizedBox(height: 14),
-            const Divider(height: 1),
-            const SizedBox(height: 14),
-
-            // Location data rows
-            _infoRow(
-              icon: Icons.my_location_rounded,
-              label: 'Latitude',
-              value: _selectedLocation != null
-                  ? '${_selectedLocation!.latitude.toStringAsFixed(6)}°'
-                  : '—',
-              color: const Color(0xFF1565C0),
-            ),
-            const SizedBox(height: 10),
-            _infoRow(
-              icon: Icons.my_location_rounded,
-              label: 'Longitude',
-              value: _selectedLocation != null
-                  ? '${_selectedLocation!.longitude.toStringAsFixed(6)}°'
-                  : '—',
-              color: const Color(0xFFE65100),
-            ),
-            const SizedBox(height: 10),
-            _infoRow(
-              icon: Icons.location_city_rounded,
-              label: 'Address',
-              value: _isLoadingAddress
-                  ? 'Getting address...'
-                  : _selectedAddress.isEmpty
-                      ? '—'
-                      : _selectedAddress,
-              color: const Color(0xFF2E7D32),
-            ),
-
-            const SizedBox(height: 14),
-
-            // Warning banner
-            Container(
-              padding: const EdgeInsets.all(10),
+  Widget _buildBottomPanel() {
+    final loc = _selectedLocation;
+    return Container(
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        boxShadow: [
+          BoxShadow(
+            color: Color(0x33000000),
+            blurRadius: 20,
+            offset: Offset(0, -4),
+          ),
+        ],
+      ),
+      padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Handle
+          Center(
+            child: Container(
+              width: 40,
+              height: 4,
               decoration: BoxDecoration(
-                color: Colors.orange.shade50,
-                borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: Colors.orange.shade200),
+                color: const Color(0xFFE0E0E0),
+                borderRadius: BorderRadius.circular(2),
               ),
-              child: Row(
-                children: [
-                  Icon(Icons.warning_amber_rounded,
-                      color: Colors.orange.shade700, size: 16),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      '"Custom Location Used" watermark will be embedded in your photo.',
-                      style: TextStyle(
-                        color: Colors.orange.shade800,
-                        fontSize: 11.5,
-                        fontWeight: FontWeight.w500,
+            ),
+          ),
+          const SizedBox(height: 16),
+
+          // Header
+          Row(
+            children: [
+              Container(
+                width: 8,
+                height: 8,
+                decoration: const BoxDecoration(
+                  color: Color(0xFF2E7D32),
+                  shape: BoxShape.circle,
+                ),
+              ),
+              const SizedBox(width: 8),
+              const Text(
+                'Selected Location',
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                  color: Color(0xFF2E7D32),
+                ),
+              ),
+              const Spacer(),
+              if (_isLoadingAddress)
+                const SizedBox(
+                  width: 14,
+                  height: 14,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: Color(0xFF7C3AED),
+                  ),
+                ),
+            ],
+          ),
+          const SizedBox(height: 14),
+
+          // Coords + mini map
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    if (loc != null) ...[
+                      Text(
+                        '${loc.latitude.toStringAsFixed(4)}° N,  ${loc.longitude.toStringAsFixed(4)}° E',
+                        style: const TextStyle(
+                          fontSize: 17,
+                          fontWeight: FontWeight.w800,
+                          color: Color(0xFF111827),
+                        ),
                       ),
+                      const SizedBox(height: 6),
+                    ],
+                    Text(
+                      _isLoadingAddress
+                          ? 'Fetching address...'
+                          : _selectedAddress.isEmpty
+                              ? 'Tap a location on the map'
+                              : _selectedAddress,
+                      style: const TextStyle(
+                        fontSize: 13,
+                        color: Color(0xFF6B7280),
+                      ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 12),
+              // Mini map thumbnail
+              Container(
+                width: 76,
+                height: 76,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF3E8FF),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: const Color(0xFFDDD6FE)),
+                ),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(11),
+                  child: loc != null
+                      ? GoogleMap(
+                          initialCameraPosition: CameraPosition(
+                            target: loc,
+                            zoom: 14,
+                          ),
+                          markers: {
+                            Marker(
+                              markerId: const MarkerId('preview'),
+                              position: loc,
+                              icon: BitmapDescriptor.defaultMarkerWithHue(
+                                  BitmapDescriptor.hueViolet),
+                            ),
+                          },
+                          zoomControlsEnabled: false,
+                          scrollGesturesEnabled: false,
+                          tiltGesturesEnabled: false,
+                          rotateGesturesEnabled: false,
+                          zoomGesturesEnabled: false,
+                          mapToolbarEnabled: false,
+                          compassEnabled: false,
+                          myLocationButtonEnabled: false,
+                          liteModeEnabled: true,
+                        )
+                      : const Icon(Icons.map_rounded,
+                          color: Color(0xFF7C3AED), size: 30),
+                ),
+              ),
+            ],
+          ),
+
+          const SizedBox(height: 20),
+
+          // Confirm button
+          GestureDetector(
+            onTap: (_isLoadingAddress || loc == null) ? null : _proceedToCamera,
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 200),
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(vertical: 16),
+              decoration: BoxDecoration(
+                color: (_isLoadingAddress || loc == null)
+                    ? const Color(0xFF9E9E9E)
+                    : const Color(0xFF2E7D32),
+                borderRadius: BorderRadius.circular(14),
+                boxShadow: (loc != null && !_isLoadingAddress)
+                    ? [
+                        BoxShadow(
+                          color: const Color(0xFF2E7D32).withValues(alpha: 0.3),
+                          blurRadius: 12,
+                          offset: const Offset(0, 4),
+                        ),
+                      ]
+                    : null,
+              ),
+              child: const Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.check_circle_rounded, color: Colors.white, size: 20),
+                  SizedBox(width: 8),
+                  Text(
+                    'Confirm Location',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w800,
+                      color: Colors.white,
                     ),
                   ),
                 ],
               ),
             ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _infoRow({
-    required IconData icon,
-    required String label,
-    required String value,
-    required Color color,
-  }) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Container(
-          padding: const EdgeInsets.all(5),
-          decoration: BoxDecoration(
-            color: color.withValues(alpha: 0.1),
-            borderRadius: BorderRadius.circular(8),
           ),
-          child: Icon(icon, color: color, size: 14),
-        ),
-        const SizedBox(width: 10),
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              label,
-              style: const TextStyle(
-                color: Colors.grey,
-                fontSize: 10.5,
-                fontWeight: FontWeight.w600,
-                letterSpacing: 0.5,
-              ),
+
+          const SizedBox(height: 12),
+
+          // Footer
+          Container(
+            padding:
+                const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+            decoration: BoxDecoration(
+              color: const Color(0xFFF0FDF4),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: const Color(0xFFBBF7D0)),
             ),
-            const SizedBox(height: 1),
-            SizedBox(
-              width: MediaQuery.of(context).size.width - 140,
-              child: Text(
-                value,
-                style: const TextStyle(
-                  fontWeight: FontWeight.w700,
-                  fontSize: 13,
-                  color: Color(0xFF1A1A2E),
+            child: const Row(
+              children: [
+                Icon(Icons.shield_rounded, color: Color(0xFF2E7D32), size: 16),
+                SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'Accurate & Reliable — GPS coordinates are embedded in your photo',
+                    style: TextStyle(fontSize: 11, color: Color(0xFF2E7D32)),
+                  ),
                 ),
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-              ),
+                Icon(Icons.satellite_alt_rounded,
+                    color: Color(0xFF2E7D32), size: 16),
+              ],
             ),
-          ],
-        ),
-      ],
-    );
-  }
-
-  Widget _buildZoomControls() {
-    return Positioned(
-      right: 16,
-      bottom: _isPanelVisible ? 340 : 120,
-      child: Column(
-        children: [
-          _zoomButton(
-            icon: Icons.add_rounded,
-            onTap: () async {
-              final zoom = await _mapController?.getZoomLevel() ?? 10.0;
-              _mapController?.animateCamera(
-                  CameraUpdate.newLatLngZoom(
-                    _selectedLocation ??
-                        const LatLng(20.5937, 78.9629),
-                    zoom + 1,
-                  ));
-            },
-          ),
-          const SizedBox(height: 8),
-          _zoomButton(
-            icon: Icons.remove_rounded,
-            onTap: () async {
-              final zoom = await _mapController?.getZoomLevel() ?? 10.0;
-              _mapController?.animateCamera(
-                  CameraUpdate.zoomTo(zoom - 1));
-            },
-          ),
-          const SizedBox(height: 8),
-          _zoomButton(
-            icon: Icons.my_location_rounded,
-            onTap: _tryGoToCurrentLocation,
           ),
         ],
       ),
     );
   }
 
-  Widget _zoomButton({
-    required IconData icon,
-    required VoidCallback onTap,
-  }) {
+  Widget _buildZoomControls() {
+    return Positioned(
+      right: 16,
+      bottom: _isPanelVisible ? 380 : 100,
+      child: Column(
+        children: [
+          _zoomBtn(Icons.add_rounded, () async {
+            final z = await _mapController?.getZoomLevel() ?? 10.0;
+            _mapController?.animateCamera(CameraUpdate.zoomTo(z + 1));
+          }),
+          const SizedBox(height: 8),
+          _zoomBtn(Icons.remove_rounded, () async {
+            final z = await _mapController?.getZoomLevel() ?? 10.0;
+            _mapController?.animateCamera(CameraUpdate.zoomTo(z - 1));
+          }),
+          const SizedBox(height: 8),
+          _zoomBtn(Icons.my_location_rounded, _tryGoToCurrentLocation),
+        ],
+      ),
+    );
+  }
+
+  Widget _zoomBtn(IconData icon, VoidCallback onTap) {
     return GestureDetector(
       onTap: onTap,
       child: Container(
@@ -569,16 +527,13 @@ class _MapPickerScreenState extends State<MapPickerScreen>
   }
 
   Widget _buildLoadingIndicator() {
-    return Positioned(
-      top: 0,
-      left: 0,
-      right: 0,
-      bottom: 0,
+    return Positioned.fill(
       child: IgnorePointer(
         child: Align(
           alignment: const Alignment(0, -0.4),
           child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+            padding:
+                const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
             decoration: BoxDecoration(
               color: Colors.black.withValues(alpha: 0.65),
               borderRadius: BorderRadius.circular(20),
@@ -589,8 +544,8 @@ class _MapPickerScreenState extends State<MapPickerScreen>
                 SizedBox(
                   width: 14,
                   height: 14,
-                  child:
-                      CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                  child: CircularProgressIndicator(
+                      color: Colors.white, strokeWidth: 2),
                 ),
                 SizedBox(width: 10),
                 Text('Getting address...',
@@ -603,190 +558,19 @@ class _MapPickerScreenState extends State<MapPickerScreen>
     );
   }
 
-  // ── Confirmation Dialog ───────────────────────────────────
-
-  void _showConfirmDialog() {
-    if (_selectedLocation == null) return;
-
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: const Color(0xFF1E2A3A),
-        shape:
-            RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-        title: const Row(
-          children: [
-            Icon(Icons.location_on_rounded, color: Colors.redAccent, size: 24),
-            SizedBox(width: 10),
-            Expanded(
-              child: Text(
-                'Use These Coordinates?',
-                style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 17,
-                    fontWeight: FontWeight.w800),
-              ),
-            ),
-          ],
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            // Location summary card
-            Container(
-              padding: const EdgeInsets.all(14),
-              decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.05),
-                borderRadius: BorderRadius.circular(14),
-                border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _dialogRow(
-                      'Latitude',
-                      '${_selectedLocation!.latitude.toStringAsFixed(6)}°'),
-                  const SizedBox(height: 8),
-                  _dialogRow(
-                      'Longitude',
-                      '${_selectedLocation!.longitude.toStringAsFixed(6)}°'),
-                  const SizedBox(height: 8),
-                  _dialogRow('Address',
-                      _selectedAddress.isEmpty ? '—' : _selectedAddress),
-                ],
-              ),
-            ),
-            const SizedBox(height: 14),
-
-            // Warning
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: Colors.purple.withValues(alpha: 0.15),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(
-                    color: Colors.purple.withValues(alpha: 0.3)),
-              ),
-              child: Row(
-                children: [
-                  const Icon(Icons.info_rounded,
-                      color: Colors.purpleAccent, size: 16),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: RichText(
-                      text: const TextSpan(
-                        style: TextStyle(
-                            color: Colors.white70, fontSize: 11.5),
-                        children: [
-                          TextSpan(
-                              text: '"Custom Location Used" ',
-                              style: TextStyle(
-                                  color: Colors.purpleAccent,
-                                  fontWeight: FontWeight.bold)),
-                          TextSpan(
-                              text:
-                                  'watermark will be burned into the photo.'),
-                        ],
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-        actionsPadding:
-            const EdgeInsets.fromLTRB(16, 0, 16, 16),
-        actions: [
-          // NO — re-select
-          OutlinedButton(
-            style: OutlinedButton.styleFrom(
-              side: const BorderSide(color: Colors.white30),
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12)),
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-            ),
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text(
-              'No, Re-select',
-              style: TextStyle(color: Colors.white70),
-            ),
-          ),
-
-          // YES — proceed to camera
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF6A1B9A),
-              foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12)),
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-              elevation: 0,
-            ),
-            onPressed: () {
-              Navigator.pop(ctx);
-              _proceedToCamera();
-            },
-            child: const Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(Icons.check_rounded, size: 16),
-                SizedBox(width: 6),
-                Text('Yes, Proceed',
-                    style: TextStyle(fontWeight: FontWeight.bold)),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _dialogRow(String label, String value) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          '$label:  ',
-          style: const TextStyle(
-              color: Colors.white54,
-              fontSize: 12,
-              fontWeight: FontWeight.w600),
-        ),
-        Expanded(
-          child: Text(
-            value,
-            style: const TextStyle(
-                color: Colors.white,
-                fontSize: 12,
-                fontWeight: FontWeight.w700),
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-          ),
-        ),
-      ],
-    );
-  }
-
   void _proceedToCamera() {
-    // Set custom location in provider and navigate to camera
+    if (_selectedLocation == null) return;
     context.read<LocationProvider>().setCustomLocation(
           _selectedLocation!.latitude,
           _selectedLocation!.longitude,
           _selectedAddress.isEmpty ? 'Unknown Location' : _selectedAddress,
         );
-
     Navigator.push(
       context,
       PageRouteBuilder(
         pageBuilder: (_, animation, __) => const CameraScreen(),
-        transitionsBuilder: (_, animation, __, child) => FadeTransition(
-          opacity: animation,
-          child: child,
-        ),
+        transitionsBuilder: (_, animation, __, child) =>
+            FadeTransition(opacity: animation, child: child),
         transitionDuration: const Duration(milliseconds: 300),
       ),
     );

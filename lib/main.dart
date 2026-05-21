@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'providers/location_provider.dart';
-import 'screens/home_screen.dart';
+import 'screens/splash_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -21,7 +21,7 @@ void main() async {
   SystemChrome.setSystemUIOverlayStyle(
     const SystemUiOverlayStyle(
       statusBarColor: Colors.transparent,
-      statusBarIconBrightness: Brightness.light,
+      statusBarIconBrightness: Brightness.dark,
     ),
   );
 
@@ -39,7 +39,7 @@ class GpsMapCameraApp extends StatelessWidget {
         title: 'GPS Map Camera Pro',
         debugShowCheckedModeBanner: false,
         theme: _buildTheme(),
-        home: const HomeScreen(),
+        home: const SplashScreen(),
       ),
     );
   }
@@ -48,10 +48,10 @@ class GpsMapCameraApp extends StatelessWidget {
     return ThemeData(
       useMaterial3: true,
       colorScheme: ColorScheme.fromSeed(
-        seedColor: const Color(0xFF0F3460),
-        brightness: Brightness.dark,
+        seedColor: const Color(0xFF2E7D32),
+        brightness: Brightness.light,
       ),
-      scaffoldBackgroundColor: const Color(0xFF1A1A2E),
+      scaffoldBackgroundColor: Colors.white,
       fontFamily: 'Roboto',
       snackBarTheme: const SnackBarThemeData(
         behavior: SnackBarBehavior.floating,
