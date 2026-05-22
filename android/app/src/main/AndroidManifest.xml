@@ -29,6 +29,7 @@
         android:label="SLC GPS Map Camera Pro"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher"
+        android:roundIcon="@mipmap/ic_launcher_round"
         android:requestLegacyExternalStorage="true">
 
         <!-- ★ IMPORTANT: Replace with your actual Google Maps API Key -->

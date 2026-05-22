@@ -1,7 +1,7 @@
 name: gps_map_camera_pro
 description: GPS Map Camera Pro - Capture photos with GPS location overlay
 publish_to: 'none'
-version: 1.0.1+2
+version: 1.0.2+3
 
 environment:
   sdk: '>=3.0.0 <4.0.0'
@@ -40,6 +40,17 @@ dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^3.0.0
+  flutter_launcher_icons: ^0.13.1
+
+flutter_launcher_icons:
+  android: "ic_launcher"
+  ios: false
+  image_path: "play_store_icon_512.png"
+  min_sdk_android: 21
+  adaptive_icon_background: "#1A1A2E"
+  adaptive_icon_foreground: "play_store_icon_512.png"
+  web:
+    generate: false
 
 flutter:
   uses-material-design: true
