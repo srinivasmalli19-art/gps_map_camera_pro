@@ -6,9 +6,8 @@ import 'package:intl/intl.dart';
 import '../models/location_data.dart';
 import '../constants/app_constants.dart';
 
-/// White card GPS overlay — sits at the bottom of the camera viewfinder.
-/// Returns the panel widget directly (no internal Positioned);
-/// camera_screen.dart wraps it with Positioned.
+/// Compact dark floating card — sits in the bottom-left corner of the
+/// camera viewfinder. camera_screen.dart wraps it with Positioned(left, bottom).
 class CameraOverlayWidget extends StatefulWidget {
   final LocationData locationData;
   final bool isLandscape;
@@ -39,176 +38,153 @@ class _CameraOverlayWidgetState extends State<CameraOverlayWidget> {
 
   String _fmt(DateTime dt) => DateFormat('dd MMM yyyy  HH:mm:ss').format(dt);
 
-  @override
-  Widget build(BuildContext context) {
-    return widget.isLandscape ? _buildLandscapePanel() : _buildPortraitPanel();
-  }
-
   Color get _accent =>
       widget.locationData.isCustom
           ? const Color(0xFF7C3AED)
-          : const Color(0xFF2E7D32);
+          : const Color(0xFF00BCD4);
 
-  // ── Portrait — white card ────────────────────────────────
-
-  Widget _buildPortraitPanel() {
+  @override
+  Widget build(BuildContext context) {
     final loc = widget.locationData;
+    final mapSize = widget.isLandscape ? 52.0 : 56.0;
+    final cardWidth = widget.isLandscape ? 192.0 : 204.0;
+
     return Container(
+      width: cardWidth,
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: const Color(0xE0101419),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: Colors.white.withValues(alpha: 0.12),
+          width: 0.5,
+        ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.18),
-            blurRadius: 12,
-            offset: const Offset(0, -3),
+            color: Colors.black.withValues(alpha: 0.55),
+            blurRadius: 14,
+            offset: const Offset(0, 4),
           ),
         ],
       ),
-      padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(12),
+        child: IntrinsicHeight(
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              // Mini map
-              _buildMiniMap(size: 80),
-              const SizedBox(width: 12),
-              // GPS info
-              Expanded(child: _buildGpsInfo(loc)),
+              // Left accent strip
+              Container(width: 3, color: _accent),
+              // Content
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.all(8),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _buildMiniMap(size: mapSize),
+                      const SizedBox(width: 8),
+                      Expanded(child: _buildGpsInfo(loc)),
+                    ],
+                  ),
+                ),
+              ),
             ],
           ),
-          if (loc.isCustom) _buildCustomBanner(),
-        ],
+        ),
       ),
     );
   }
-
-  // ── Landscape — wide white card ──────────────────────────
-
-  Widget _buildLandscapePanel() {
-    final loc = widget.locationData;
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.18),
-            blurRadius: 12,
-            offset: const Offset(0, -3),
-          ),
-        ],
-      ),
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Row(
-            children: [
-              _buildMiniMap(size: 70),
-              const SizedBox(width: 14),
-              Expanded(child: _buildGpsInfo(loc)),
-            ],
-          ),
-          if (loc.isCustom) _buildCustomBanner(),
-        ],
-      ),
-    );
-  }
-
-  // ── Shared sub-widgets ───────────────────────────────────
 
   Widget _buildGpsInfo(LocationData loc) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
       children: [
-        // App name + mode badge row
         Row(
           children: [
-            const Text(
-              AppConstants.appName,
-              style: TextStyle(
-                fontSize: 10,
-                fontWeight: FontWeight.w900,
-                color: Color(0xFF111827),
-                letterSpacing: 0.5,
+            const Expanded(
+              child: Text(
+                AppConstants.appName,
+                style: TextStyle(
+                  fontSize: 8,
+                  fontWeight: FontWeight.w900,
+                  color: Color(0xFFFFD54F),
+                  letterSpacing: 0.4,
+                ),
+                overflow: TextOverflow.ellipsis,
               ),
             ),
-            const SizedBox(width: 6),
+            const SizedBox(width: 4),
             _modeBadge(loc),
           ],
         ),
         const SizedBox(height: 4),
-
-        // Address
         Text(
           loc.address.isEmpty ? 'Location selected' : loc.address,
           style: const TextStyle(
-            fontSize: 11,
+            fontSize: 9,
             fontWeight: FontWeight.w600,
-            color: Color(0xFF374151),
+            color: Color(0xFFB0BEC5),
           ),
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
         ),
-        const SizedBox(height: 3),
-
-        // Coordinates row
-        Row(
-          children: [
-            _coordText('LAT', '${loc.latStr}°', Colors.blue.shade700),
-            const SizedBox(width: 12),
-            _coordText('LNG', '${loc.lngStr}°', Colors.orange.shade700),
-          ],
-        ),
-        const SizedBox(height: 3),
-
-        // Time
+        const SizedBox(height: 4),
+        _coordRow('LAT', '${loc.latStr}°', const Color(0xFF4FC3F7)),
+        const SizedBox(height: 2),
+        _coordRow('LNG', '${loc.lngStr}°', const Color(0xFFFFB74D)),
+        const SizedBox(height: 4),
         StreamBuilder<String>(
           stream: _timeStream,
           initialData: _currentTime,
           builder: (_, snap) => Text(
             snap.data ?? _currentTime,
             style: const TextStyle(
-              fontSize: 10,
-              color: Color(0xFF6B7280),
+              fontSize: 8,
+              color: Color(0xFF78909C),
               fontFamily: 'monospace',
             ),
+            overflow: TextOverflow.ellipsis,
           ),
         ),
+        if (loc.isCustom) ...[
+          const SizedBox(height: 4),
+          _customBadge(),
+        ],
       ],
     );
   }
 
-  Widget _coordText(String label, String value, Color valueColor) {
+  Widget _coordRow(String label, String value, Color valueColor) {
     return Row(
-      mainAxisSize: MainAxisSize.min,
       children: [
         Container(
-          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+          padding: const EdgeInsets.symmetric(horizontal: 3, vertical: 1),
           decoration: BoxDecoration(
-            color: const Color(0xFFF3F4F6),
-            borderRadius: BorderRadius.circular(4),
+            color: const Color(0xFF1E2A3A),
+            borderRadius: BorderRadius.circular(3),
           ),
           child: Text(
             label,
             style: const TextStyle(
-              fontSize: 8,
+              fontSize: 7,
               fontWeight: FontWeight.w800,
-              color: Color(0xFF6B7280),
-              letterSpacing: 0.5,
+              color: Color(0xFF78909C),
+              letterSpacing: 0.3,
             ),
           ),
         ),
         const SizedBox(width: 4),
-        Text(
-          value,
-          style: TextStyle(
-            fontSize: 12,
-            fontWeight: FontWeight.w800,
-            color: valueColor,
-            fontFamily: 'monospace',
+        Expanded(
+          child: Text(
+            value,
+            style: TextStyle(
+              fontSize: 10,
+              fontWeight: FontWeight.w800,
+              color: valueColor,
+              fontFamily: 'monospace',
+            ),
+            overflow: TextOverflow.ellipsis,
           ),
         ),
       ],
@@ -217,11 +193,11 @@ class _CameraOverlayWidgetState extends State<CameraOverlayWidget> {
 
   Widget _modeBadge(LocationData loc) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
       decoration: BoxDecoration(
-        color: _accent.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: _accent.withValues(alpha: 0.3)),
+        color: _accent.withValues(alpha: 0.15),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: _accent.withValues(alpha: 0.4), width: 0.5),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -231,16 +207,16 @@ class _CameraOverlayWidgetState extends State<CameraOverlayWidget> {
                 ? Icons.edit_location_rounded
                 : Icons.gps_fixed_rounded,
             color: _accent,
-            size: 8,
+            size: 7,
           ),
-          const SizedBox(width: 3),
+          const SizedBox(width: 2),
           Text(
             loc.modeLabel.toUpperCase(),
             style: TextStyle(
               color: _accent,
-              fontSize: 7,
+              fontSize: 6,
               fontWeight: FontWeight.w900,
-              letterSpacing: 0.8,
+              letterSpacing: 0.5,
             ),
           ),
         ],
@@ -254,17 +230,11 @@ class _CameraOverlayWidgetState extends State<CameraOverlayWidget> {
       width: size,
       height: size,
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: _accent.withValues(alpha: 0.4), width: 1.5),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.12),
-            blurRadius: 6,
-          ),
-        ],
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: _accent.withValues(alpha: 0.5), width: 1),
       ),
       child: ClipRRect(
-        borderRadius: BorderRadius.circular(8.5),
+        borderRadius: BorderRadius.circular(7),
         child: GoogleMap(
           initialCameraPosition: CameraPosition(
             target: LatLng(loc.latitude, loc.longitude),
@@ -295,32 +265,31 @@ class _CameraOverlayWidgetState extends State<CameraOverlayWidget> {
     );
   }
 
-  Widget _buildCustomBanner() {
+  Widget _customBadge() {
     return Container(
-      width: double.infinity,
-      margin: const EdgeInsets.only(top: 6),
-      padding: const EdgeInsets.symmetric(vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
       decoration: BoxDecoration(
-        color: const Color(0xFF7C3AED).withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(6),
-        border: Border.all(color: const Color(0xFF7C3AED).withValues(alpha: 0.3)),
+        color: const Color(0xFF7C3AED).withValues(alpha: 0.15),
+        borderRadius: BorderRadius.circular(4),
+        border: Border.all(
+          color: const Color(0xFF7C3AED).withValues(alpha: 0.4),
+          width: 0.5,
+        ),
       ),
       child: const Row(
-        mainAxisAlignment: MainAxisAlignment.center,
+        mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(Icons.warning_rounded, color: Color(0xFF7C3AED), size: 11),
-          SizedBox(width: 6),
+          Icon(Icons.warning_rounded, color: Color(0xFF7C3AED), size: 8),
+          SizedBox(width: 3),
           Text(
-            AppConstants.customWatermark,
+            'CUSTOM LOCATION',
             style: TextStyle(
               color: Color(0xFF7C3AED),
-              fontSize: 9,
+              fontSize: 7,
               fontWeight: FontWeight.w800,
-              letterSpacing: 0.8,
+              letterSpacing: 0.4,
             ),
           ),
-          SizedBox(width: 6),
-          Icon(Icons.warning_rounded, color: Color(0xFF7C3AED), size: 11),
         ],
       ),
     );

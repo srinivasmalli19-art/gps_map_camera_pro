@@ -140,9 +140,8 @@ class ImageProcessor {
   }
 
   // ── WYSIWYG snapshot compositor ──────────────────────────
-  // Scales the captured overlay widget bitmap to the photo width and stamps
-  // it at the bottom of the photo. Because the bitmap IS the live preview,
-  // the final image looks identical to what the user saw on-screen.
+  // Stamps the captured overlay widget bitmap into the bottom-left corner of
+  // the photo at 36% of the photo width, matching the live-preview card position.
 
   static Future<ui.Image> _compositeWithSnapshot(
     ui.Image cameraImage,
@@ -153,10 +152,13 @@ class ImageProcessor {
     final snapshotW = overlaySnapshot.width.toDouble();
     final snapshotH = overlaySnapshot.height.toDouble();
 
-    // Scale snapshot proportionally so its width matches the photo width.
-    final scale   = W / snapshotW;
+    // Corner placement: 36% width, 2.5% margin from edges.
+    final margin  = W * 0.025;
+    final scaledW = W * 0.36;
+    final scale   = scaledW / snapshotW;
     final scaledH = snapshotH * scale;
-    final overlayY = H - scaledH;
+    final cardX   = margin;
+    final cardY   = H - scaledH - margin;
 
     final recorder = ui.PictureRecorder();
     final canvas   = Canvas(recorder, Rect.fromLTWH(0, 0, W, H));
@@ -175,11 +177,11 @@ class ImageProcessor {
         ),
     );
 
-    // Stamp the overlay snapshot — high-quality downscale/upscale
+    // Stamp the compact overlay card at bottom-left corner
     canvas.drawImageRect(
       overlaySnapshot,
       Rect.fromLTWH(0, 0, snapshotW, snapshotH),
-      Rect.fromLTWH(0, overlayY, W, scaledH),
+      Rect.fromLTWH(cardX, cardY, scaledW, scaledH),
       Paint()..filterQuality = FilterQuality.high,
     );
 

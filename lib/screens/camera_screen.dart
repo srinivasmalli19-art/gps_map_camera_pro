@@ -64,9 +64,7 @@ class _CameraScreenState extends State<CameraScreen>
   // ── Gallery thumbnail ─────────────────────────────────────
   String? _lastPhotoPath;
 
-  static const double _bottomNavH        = 90.0;
-  static const double _landscapeOverlayH = 100.0;
-  static const double _portraitOverlayH  = 100.0; // GPS card height only
+  static const double _bottomNavH = 90.0;
 
   @override
   void initState() {
@@ -414,7 +412,6 @@ class _CameraScreenState extends State<CameraScreen>
       body: OrientationBuilder(
         builder: (context, orientation) {
           final isLandscape = orientation == Orientation.landscape;
-          final overlayH = isLandscape ? _landscapeOverlayH : _portraitOverlayH;
 
           return Stack(
             fit: StackFit.expand,
@@ -426,12 +423,11 @@ class _CameraScreenState extends State<CameraScreen>
                 child: _buildCameraPreview(),
               ),
 
-              // Layer 2: GPS overlay — above bottom nav in portrait
+              // Layer 2: GPS overlay — compact card in bottom-left corner
               if (_isInitialized)
                 Positioned(
-                  bottom: isLandscape ? 0 : _bottomNavH,
-                  left: 0,
-                  right: isLandscape ? 88 : 0,
+                  bottom: isLandscape ? 12 : _bottomNavH + 12,
+                  left: 12,
                   child: RepaintBoundary(
                     key: _overlayBoundaryKey,
                     child: CameraOverlayWidget(
@@ -456,7 +452,7 @@ class _CameraScreenState extends State<CameraScreen>
 
               // Layer 7: Capture controls
               if (isLandscape)
-                _buildLandscapeControls(overlayH)
+                _buildLandscapeControls()
               else
                 _buildPortraitBottomNav(),
 
@@ -589,10 +585,10 @@ class _CameraScreenState extends State<CameraScreen>
 
   // ── Landscape controls — right column ─────────────────────
 
-  Widget _buildLandscapeControls(double overlayH) {
+  Widget _buildLandscapeControls() {
     final hasMultiple = (_cameras?.length ?? 0) > 1;
     return Positioned(
-      right: 0, top: 0, bottom: overlayH,
+      right: 0, top: 0, bottom: 0,
       child: SafeArea(
         child: Container(
           width: 88,
