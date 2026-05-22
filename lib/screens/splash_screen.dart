@@ -319,10 +319,10 @@ class _TitleSection extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 4),
-        Row(
+        const Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Text(
+            Text(
               'GPS ',
               style: TextStyle(
                 fontSize: 22,
@@ -331,7 +331,7 @@ class _TitleSection extends StatelessWidget {
                 letterSpacing: 3,
               ),
             ),
-            const Text(
+            Text(
               'MAP CAMERA',
               style: TextStyle(
                 fontSize: 22,

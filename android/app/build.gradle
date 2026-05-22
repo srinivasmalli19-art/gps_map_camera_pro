@@ -4,6 +4,9 @@ plugins {
     id "dev.flutter.flutter-gradle-plugin"
 }
 
+// Redirect build output away from OneDrive virtual folder
+buildDir = 'C:/builds/gps_camera/app'
+
 // Load release signing credentials from key.properties
 def keyProperties = new Properties()
 def keyPropertiesFile = rootProject.file('key.properties')

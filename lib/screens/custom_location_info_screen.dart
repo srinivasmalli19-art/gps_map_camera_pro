@@ -268,8 +268,8 @@ class CustomLocationInfoScreen extends StatelessWidget {
           Container(
             width: 40,
             height: 40,
-            decoration: BoxDecoration(
-              color: const Color(0xFFF3E8FF),
+            decoration: const BoxDecoration(
+              color: Color(0xFFF3E8FF),
               shape: BoxShape.circle,
             ),
             child: Icon(icon, color: const Color(0xFF7C3AED), size: 20),

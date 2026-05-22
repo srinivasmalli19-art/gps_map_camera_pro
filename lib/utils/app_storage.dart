@@ -41,7 +41,7 @@ class AppStorage {
     final h  = now.hour.toString().padLeft(2, '0');
     final mi = now.minute.toString().padLeft(2, '0');
     final s  = now.second.toString().padLeft(2, '0');
-    return '${filePrefix}$y$mo${d}_$h$mi$s.jpg';
+    return '$filePrefix$y$mo${d}_$h$mi$s.jpg';
   }
 
   // ── Listing ───────────────────────────────────────────────

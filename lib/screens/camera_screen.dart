@@ -2,7 +2,9 @@
 
 import 'dart:async';
 import 'dart:io';
+import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:camera/camera.dart';
 import 'package:permission_handler/permission_handler.dart';
@@ -53,6 +55,11 @@ class _CameraScreenState extends State<CameraScreen>
   // ── Settings ──────────────────────────────────────────────
   FlashMode _flashMode = FlashMode.off;
   bool _showGrid = false;
+
+  // ── Overlay WYSIWYG snapshot ──────────────────────────────
+  // Key used to capture the live GPS overlay as a pixel-perfect bitmap
+  // at the moment of capture and composite it onto the saved photo.
+  final GlobalKey _overlayBoundaryKey = GlobalKey();
 
   // ── Gallery thumbnail ─────────────────────────────────────
   String? _lastPhotoPath;
@@ -144,11 +151,12 @@ class _CameraScreenState extends State<CameraScreen>
       ctrl.addListener(_onCameraValueChanged);
       try { await ctrl.setFlashMode(_flashMode); } catch (_) {}
 
-      // Fetch zoom range for this camera
+      // Fetch zoom range — start at minimum (0.5x on ultra-wide, 1.0x on standard)
       try {
-        _minZoom    = await ctrl.getMinZoomLevel();
-        _maxZoom    = await ctrl.getMaxZoomLevel();
-        _currentZoom = 1.0;
+        _minZoom     = await ctrl.getMinZoomLevel();
+        _maxZoom     = await ctrl.getMaxZoomLevel();
+        _currentZoom = _minZoom;
+        await ctrl.setZoomLevel(_currentZoom);
       } catch (_) {}
 
       if (mounted) setState(() => _isInitialized = true);
@@ -210,6 +218,23 @@ class _CameraScreenState extends State<CameraScreen>
     });
   }
 
+  // ── Overlay snapshot for WYSIWYG compositing ─────────────
+  // Captures the live GPS card as a pixel-exact bitmap just before shutter.
+  // pixelRatio = device DPR so the snapshot is in physical pixels.
+
+  Future<ui.Image?> _captureOverlaySnapshot() async {
+    try {
+      final boundary = _overlayBoundaryKey.currentContext?.findRenderObject()
+          as RenderRepaintBoundary?;
+      if (boundary == null) return null;
+      final dpr = MediaQuery.of(context).devicePixelRatio;
+      return await boundary.toImage(pixelRatio: dpr);
+    } catch (e) {
+      debugPrint('[CameraScreen] Overlay snapshot failed: $e');
+      return null;
+    }
+  }
+
   // ── Capture — auto-save, no navigation ───────────────────
 
   Future<void> _capturePhoto() async {
@@ -218,6 +243,11 @@ class _CameraScreenState extends State<CameraScreen>
 
     final locationData = context.read<LocationProvider>().locationData;
     if (locationData == null) return;
+
+    // Snapshot the live overlay BEFORE the shutter flash so the widget is
+    // still fully rendered. This bitmap is composited onto the saved photo
+    // to guarantee the final image looks identical to the live preview.
+    final overlaySnapshot = await _captureOverlaySnapshot();
 
     setState(() { _isCapturing = true; _showCaptureFlash = true; });
     await Future.delayed(const Duration(milliseconds: 100));
@@ -235,6 +265,7 @@ class _CameraScreenState extends State<CameraScreen>
       final savedPath = await ImageProcessor.processAndSave(
         picture.path,
         locationData,
+        overlaySnapshot: overlaySnapshot,
       );
 
       if (!mounted) return;
@@ -347,9 +378,12 @@ class _CameraScreenState extends State<CameraScreen>
                   bottom: isLandscape ? 0 : _bottomNavH,
                   left: 0,
                   right: isLandscape ? 88 : 0,
-                  child: CameraOverlayWidget(
-                    locationData: locationData,
-                    isLandscape: isLandscape,
+                  child: RepaintBoundary(
+                    key: _overlayBoundaryKey,
+                    child: CameraOverlayWidget(
+                      locationData: locationData,
+                      isLandscape: isLandscape,
+                    ),
                   ),
                 ),
 

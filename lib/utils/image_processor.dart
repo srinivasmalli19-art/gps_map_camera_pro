@@ -21,8 +21,9 @@ class ImageProcessor {
   /// Returns the saved file path on success, null on failure.
   static Future<String?> processAndSave(
     String imagePath,
-    LocationData locationData,
-  ) async {
+    LocationData locationData, {
+    ui.Image? overlaySnapshot,
+  }) async {
     try {
       debugPrint('[ImageProcessor] Processing: $imagePath');
 
@@ -61,15 +62,20 @@ class ImageProcessor {
       final frame = await codec.getNextFrame();
       final cameraImage = frame.image;
 
-      // ── Step 3: Download static map thumbnail (optional) ─────────────
+      // ── Step 3: Download static map thumbnail (only without snapshot) ───
       ui.Image? mapImage;
-      if (AppConstants.googleMapsApiKey != 'YOUR_GOOGLE_MAPS_API_KEY') {
+      if (overlaySnapshot == null &&
+          AppConstants.googleMapsApiKey != 'YOUR_GOOGLE_MAPS_API_KEY') {
         mapImage = await _downloadStaticMapImage(locationData);
       }
 
       // ── Step 4: Composite GPS overlay onto the image ──────────────────
-      final finalImage =
-          await _compositeOverlay(cameraImage, locationData, mapImage);
+      // When overlaySnapshot is supplied we stamp the exact live-preview widget
+      // bitmap onto the photo (WYSIWYG). Otherwise fall back to the canvas-drawn
+      // overlay (older behaviour, used when snapshot capture fails).
+      final finalImage = overlaySnapshot != null
+          ? await _compositeWithSnapshot(cameraImage, overlaySnapshot)
+          : await _compositeOverlay(cameraImage, locationData, mapImage);
 
       // ── Step 5: Encode to JPEG bytes ──────────────────────────────────
       final byteData =
@@ -131,6 +137,54 @@ class ImageProcessor {
       debugPrint('[ImageProcessor] Static map download failed: $e');
     }
     return null;
+  }
+
+  // ── WYSIWYG snapshot compositor ──────────────────────────
+  // Scales the captured overlay widget bitmap to the photo width and stamps
+  // it at the bottom of the photo. Because the bitmap IS the live preview,
+  // the final image looks identical to what the user saw on-screen.
+
+  static Future<ui.Image> _compositeWithSnapshot(
+    ui.Image cameraImage,
+    ui.Image overlaySnapshot,
+  ) async {
+    final W = cameraImage.width.toDouble();
+    final H = cameraImage.height.toDouble();
+    final snapshotW = overlaySnapshot.width.toDouble();
+    final snapshotH = overlaySnapshot.height.toDouble();
+
+    // Scale snapshot proportionally so its width matches the photo width.
+    final scale   = W / snapshotW;
+    final scaledH = snapshotH * scale;
+    final overlayY = H - scaledH;
+
+    final recorder = ui.PictureRecorder();
+    final canvas   = Canvas(recorder, Rect.fromLTWH(0, 0, W, H));
+
+    canvas.drawImage(cameraImage, Offset.zero, Paint());
+
+    // Subtle top gradient so the close / flash buttons stay readable
+    final topGradH = H * 0.07;
+    canvas.drawRect(
+      Rect.fromLTWH(0, 0, W, topGradH),
+      Paint()
+        ..shader = ui.Gradient.linear(
+          Offset.zero,
+          Offset(0, topGradH),
+          [const Color(0x88000000), const Color(0x00000000)],
+        ),
+    );
+
+    // Stamp the overlay snapshot — high-quality downscale/upscale
+    canvas.drawImageRect(
+      overlaySnapshot,
+      Rect.fromLTWH(0, 0, snapshotW, snapshotH),
+      Rect.fromLTWH(0, overlayY, W, scaledH),
+      Paint()..filterQuality = FilterQuality.high,
+    );
+
+    final picture = recorder.endRecording();
+    return picture.toImage(cameraImage.width, cameraImage.height);
   }
 
   // ── GPS overlay compositor ────────────────────────────────

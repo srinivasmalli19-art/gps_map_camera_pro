@@ -1,1 +1,6 @@
 // Top-level build file. Configuration for sub-projects is in their own build.gradle files.
+
+// Redirect all subprojects' build dirs away from OneDrive virtual folder
+subprojects {
+    buildDir = "C:/builds/gps_camera/${project.name}"
+}
