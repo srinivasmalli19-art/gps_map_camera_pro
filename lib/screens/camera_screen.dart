@@ -132,10 +132,56 @@ class _CameraScreenState extends State<CameraScreen>
     try {
       _cameras = await availableCameras();
       if (_cameras == null || _cameras!.isEmpty) return;
+      // Select the widest back camera (0.5x ultra-wide when available)
+      _currentCameraIndex = await _pickWidestBackCamera();
       await _startCamera(_cameras![_currentCameraIndex]);
     } catch (e) {
       debugPrint('[CameraScreen] Init error: $e');
     }
+  }
+
+  // Probes every back-facing camera and returns the index of the one
+  // that reports the lowest minimum zoom level (= widest field of view).
+  // On phones where the main camera already aggregates ultra-wide via the
+  // multi-camera API, index 0 wins. On others, the ultra-wide camera ID
+  // (usually index 2 or 3) wins. Falls back to index 0 on any error.
+  Future<int> _pickWidestBackCamera() async {
+    if (_cameras == null || _cameras!.isEmpty) return 0;
+
+    final backs = [
+      for (int i = 0; i < _cameras!.length; i++)
+        if (_cameras![i].lensDirection == CameraLensDirection.back) i,
+    ];
+    if (backs.isEmpty) return 0;
+    if (backs.length == 1) return backs.first;
+
+    int best = backs.first;
+    double bestMin = double.infinity;
+
+    for (final idx in backs) {
+      CameraController? probe;
+      try {
+        probe = CameraController(
+          _cameras![idx],
+          ResolutionPreset.medium,
+          enableAudio: false,
+          imageFormatGroup: ImageFormatGroup.jpeg,
+        );
+        await probe.initialize();
+        final z = await probe.getMinZoomLevel();
+        if (z < bestMin) {
+          bestMin = z;
+          best = idx;
+        }
+      } catch (e) {
+        debugPrint('[CameraScreen] Zoom probe failed for cam $idx: $e');
+      } finally {
+        try { await probe?.dispose(); } catch (_) {}
+      }
+    }
+
+    debugPrint('[CameraScreen] Widest back camera: index=$best minZoom=$bestMin');
+    return best;
   }
 
   Future<void> _startCamera(CameraDescription description) async {
@@ -151,7 +197,8 @@ class _CameraScreenState extends State<CameraScreen>
       ctrl.addListener(_onCameraValueChanged);
       try { await ctrl.setFlashMode(_flashMode); } catch (_) {}
 
-      // Fetch zoom range — start at minimum (0.5x on ultra-wide, 1.0x on standard)
+      // Start at widest available zoom for this camera.
+      // On ultra-wide cameras minZoom ≈ 0.5; on standard cameras minZoom = 1.0.
       try {
         _minZoom     = await ctrl.getMinZoomLevel();
         _maxZoom     = await ctrl.getMaxZoomLevel();
@@ -159,7 +206,14 @@ class _CameraScreenState extends State<CameraScreen>
         await ctrl.setZoomLevel(_currentZoom);
       } catch (_) {}
 
-      if (mounted) setState(() => _isInitialized = true);
+      if (mounted) {
+        // Show zoom badge for 2 s on startup so user sees the starting zoom level
+        _zoomBadgeTimer?.cancel();
+        setState(() { _isInitialized = true; _showZoomBadge = true; });
+        _zoomBadgeTimer = Timer(const Duration(seconds: 2), () {
+          if (mounted) setState(() => _showZoomBadge = false);
+        });
+      }
     } catch (e) {
       debugPrint('[CameraScreen] Start camera error: $e');
     }

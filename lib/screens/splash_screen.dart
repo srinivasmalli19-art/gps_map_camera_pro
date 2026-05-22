@@ -56,8 +56,7 @@ class _SplashScreenState extends State<SplashScreen>
     _textCtrl.forward();
     await Future.delayed(const Duration(milliseconds: 500));
     _btnCtrl.forward();
-    await Future.delayed(const Duration(milliseconds: 1200));
-    if (mounted) _navigate();
+    // No auto-navigate — user must tap "Get Started" to proceed.
   }
 
   Future<void> _navigate() async {
